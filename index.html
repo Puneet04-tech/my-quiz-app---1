@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Quiz (Round 2)</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+     <style>
+        body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(
+        135deg,
+        #667eea 0%,
+        #764ba2 100%
+    );
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    animation: backgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+    0%, 100% { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    50% { 
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+}
+
+h1 {
+    text-align: center;
+    font-size: 3rem;
+    margin-bottom: 30px;
+    background: linear-gradient(
+        45deg,
+        #1a202c,
+        #2c3e50,
+        #34495e,
+        #2c3e50,
+        #2a323a,
+        #ffffff
+    );
+    padding: 20px;
+    color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    from { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+    to { box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.1); }
+}
+
+h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+#quiz {
+    background:linear-gradient(
+        135deg,
+        rgba(145, 189, 219, 0.9) 0%,
+        rgba(154, 86, 133, 0.7) 100%
+    );
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.8s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stage {
+    margin-bottom: 20px;
+}
+
+input[type="number"], input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #28a745;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+.feedback {
+    color: #d9534f;
+}
+
+#quiz-container {
+    display: flex;
+    flex-direction: column;
+}
+
+#start-screen {
+    text-align: center;
+    padding: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    margin: 20px auto;
+    max-width: 600px;
+    color: white;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+#start-screen h2 {
+    color: white;
+    margin-bottom: 25px;
+    font-size: 2.5em;
+}
+
+#start-screen p {
+    font-size: 1.2em;
+    margin: 15px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#quiz-container {
+    animation: fadeIn 0.6s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #8cb4dc, #213141);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+#quiz-main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 30px;
+    align-items: start;
+}
+
+#question-section {
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#question-card {
+    background: rgb(184, 183, 192);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#question-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+#question {
+    font-size: 1.3em;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    color: #2c3e50;
+}
+
+#options {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 30px;
+}
+
+#options li {
+    background: #f8f9fa;
+    margin: 12px 0;
+    padding: 15px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#options li:hover {
+    background: #e3f2fd;
+    transform: translateX(5px);
+    border-color: #2196f3;
+}
+
+#options li.selected {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    border-color: #4caf50;
+    transform: scale(1.02);
+}
+
+#question-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    justify-content: center;
+}
+
+#navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#mark-review-btn {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+}
+
+#mark-review-btn.marked {
+    background: linear-gradient(135deg, #ff5722, #d84315);
+}
+
+#clear-btn {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+#submit-btn {
+    background: linear-gradient(135deg, #4caf50, #388e3c);
+    font-size: 1.1em;
+    padding: 15px 30px;
+}
+
+#timer-display {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    padding: 15px 25px;
+    text-align: center;
+    font-size: 1.2em;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    animation: timerPulse 2s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+#question-counter {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 15px;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+#timer.warning {
+    color: #ffc107;
+    animation: warningBlink 1s ease-in-out infinite;
+}
+
+@keyframes warningBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+#timer.danger {
+    color: #dc3545;
+    animation: dangerBlink 0.5s ease-in-out infinite;
+}
+
+@keyframes dangerBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#question-grid-section {
+    background: rgb(23, 19, 19);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    animation: slideInRight 0.5s ease-out;
+    position: sticky;
+    top: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#question-grid-section h3 {
+    color: #4d88c3;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.4em;
+}
+
+#legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+}
+
+.legend-dot.answered {
+    background: #4caf50;
+    border-color: #4caf50;
+}
+
+.legend-dot.marked {
+    background: #ff9800;
+    border-color: #ff9800;
+}
+
+.legend-dot.current {
+    background: #2196f3;
+    border-color: #2196f3;
+    animation: currentPulse 1s ease-in-out infinite;
+}
+
+@keyframes currentPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+}
+
+.legend-dot.unanswered {
+    background: white;
+    border-color: #ddd;
+}
+
+#question-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.grid-item {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.grid-item:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.grid-item.answered {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.grid-item.marked {
+    background: #ff9800;
+    color: white;
+    border-color: #ff9800;
+}
+
+.grid-item.current {
+    background: #2196f3;
+    color: white;
+    border-color: #2196f3;
+    animation: currentItemPulse 1s ease-in-out infinite;
+}
+
+@keyframes currentItemPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+        padding: 15px;
+    }
+    
+    #quiz {
+        padding: 20px;
+    }
+    
+    #quiz-main {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    #quiz-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    #question-grid-section {
+        order: -1;
+        position: relative;
+        max-height: none;
+    }
+    
+    #legend {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    #question-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+    
+    .grid-item {
+        width: 35px;
+        height: 35px;
+    }
+    
+    #navigation-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    button {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    #start-screen {
+        padding: 30px 20px;
+        margin: 10px;
+    }
+    
+    #start-screen h2 {
+        font-size: 2em;
+    }
+    
+    #question-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #question-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+     </style>
+    <style>
+        /* Extra animations & mobile tweaks */
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        .btn-animated { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .btn-animated:active { transform: translateY(2px) scale(0.995); }
+
+        #question-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        #options li { transition: transform 0.18s ease, background 0.18s ease; }
+
+        /* Webcam proctor overlay */
+        #webcam-proctor {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            width: 160px;
+            height: 120px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 8px;
+            padding: 6px;
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+        #webcam-proctor video { width: 100%; height: 100%; object-fit: cover; border-radius:6px; }
+        #webcam-proctor .webcam-controls { position:absolute; top:6px; left:6px; display:flex; gap:6px; }
+        #webcam-proctor button { font-size:12px; padding:6px 8px; border-radius:6px; border:none; }
+
+        @media (max-width: 768px) {
+            #webcam-proctor { right:8px; bottom:8px; width:120px; height:90px; }
+            #question-card { padding: 20px; }
+            button { padding: 12px 18px; }
+        }
+    </style>
+    <!-- TensorFlow + Face Landmarks Detection for head-movement monitoring -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+    <!-- Load known compatible UMD builds for face detection models -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.7/dist/face-landmarks-detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+</head>
+<body>
+    <h1>Excel Quiz (Round 2)</h1>
+    <div id="quiz">
+        <div id="start-screen">
+            <h2>Register & Start</h2>
+            <p>You have 35 minutes to complete 25 questions. Please register first — your score will be saved to the server.</p>
+            <div style="margin:12px 0; text-align:left; max-width:420px; margin-left:auto; margin-right:auto;">
+                <label for="registrant-name">Name</label>
+                <input id="registrant-name" type="text" placeholder="Your name" />
+                <label for="registrant-email">Email (optional)</label>
+                <input id="registrant-email" type="text" placeholder="you@example.com" />
+                <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                    <input id="enable-webcam" type="checkbox" />
+                    <label for="enable-webcam">Enable webcam proctoring (optional)</label>
+                </div>
+                <div style="margin-top:10px; font-size:0.95em; color:#333;">
+                    <label style="display:block; margin-bottom:6px; font-weight:600;">Head-movement detection (debug)</label>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <label style="font-size:0.9em;">Threshold:</label>
+                        <input id="threshold-range" type="range" min="0.03" max="0.4" step="0.01" value="0.12" style="width:150px;">
+                        <span id="threshold-value">0.12</span>
+                        <label style="margin-left:10px; font-size:0.9em;">Frames:</label>
+                        <input id="frames-allowed" type="number" min="1" max="10" value="3" style="width:64px;">
+                        <label style="margin-left:10px; font-size:0.9em;">Overlay:</label>
+                        <input id="overlay-toggle" type="checkbox" />
+                    </div>
+                    <div style="font-size:0.85em; color:#666; margin-top:6px;">Use these to tune detection sensitivity. Open console to view debug logs.</div>
+                </div>
+            </div>
+            <div style="margin-top:15px;">
+                <button type="button" class="btn-animated" onclick="registerAndStart()">Register &amp; Start Quiz</button>
+            </div>
+        </div>
+        <div id="quiz-container" style="display:none;">
+            <div id="quiz-header">
+                <div id="timer-display">
+                    <strong>Time Remaining: <span id="timer">35:00</span></strong>
+                </div>
+                <div id="question-counter">
+                    Question <span id="current-q">1</span> of <span id="total-q">25</span>
+                </div>
+            </div>
+
+    <div id="quiz-main">
+                <div id="question-section">
+                    <div id="question-card">
+                        <p id="question">Question will appear here</p>
+                        <ul id="options"></ul>
+
+                        <div id="question-actions">
+                            <button type="button" id="mark-review-btn" onclick="toggleMarkForReview()">Mark for Review</button>
+                            <button type="button" id="clear-btn" onclick="clearSelection()">Clear Selection</button>
+                        </div>
+
+                        <div id="navigation-buttons">
+                            <button type="button" id="prev-btn" onclick="previousQuestion()" disabled>Previous</button>
+                            <button type="button" id="next-btn" onclick="nextQuestion()">Next</button>
+                            <button type="button" id="submit-btn" onclick="finishQuiz()" style="display:none;">Submit Quiz</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="question-grid-section">
+                    <h3>Question Navigator</h3>
+                    <div id="legend">
+                        <div class="legend-item">
+                            <span class="legend-dot answered"></span>
+                            <span>Answered</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot marked"></span>
+                            <span>Marked for Review</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot current"></span>
+                            <span>Current</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot unanswered"></span>
+                            <span>Unanswered</span>
+                        </div>
+                    </div>
+                    <div id="question-grid"></div>
+                </div>
+            </div>
+        </div>
+        <div id="quiz-results" style="display:none;">
+            <h2>Quiz Results</h2>
+            <div id="score" style="margin-top:12px;"></div>
+            <div id="time-taken" style="margin-top:8px;"></div>
+            <div id="results-extra" style="margin-top:16px;"></div>
+            <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
+                <button id="view-scores-btn" onclick="window.location='scores.html'" style="background:linear-gradient(135deg,#213341,#667eea); padding:10px 14px; border-radius:10px; color:white; border:none;">View Saved Scores</button>
+                <button id="review-answers-btn" onclick="reviewAnswers()" style="background:linear-gradient(135deg,#4caf50,#45a049); padding:10px 14px; border-radius:10px; color:white; border:none;">Review Answers</button>
+            </div>
+            <div id="incident-list-placeholder"></div>
+        </div>
+    </div>
+    <script>
+    
+    const quizData = [
+        {
+            clue: "Think of the “mean” function in statistics.",
+            question: "What Excel function returns the average of a set of numbers?",
+            correctAnswer: "AVERAGE",
+            wrongAnswers: ["MEDIAN", "MODE", "SUM"]
+        },
+        {
+            clue: "It’s related to AVERAGE but doesn’t calculate.",
+            question: "Which function counts only numeric values in a range?",
+            correctAnswer: "COUNT",
+            wrongAnswers: ["COUNTA", "SUM", "AVERAGE"]
+        },
+        {
+            clue: "This one doesn’t care what’s inside—just that something is there.",
+            question: "What function tells you how many cells are not empty?",
+            correctAnswer: "COUNTA",
+            wrongAnswers: ["COUNT", "SUM", "IF"]
+        },
+        {
+            clue: "Your COUNTING helped you spot the cell, now try FINDING a value.",
+            question: "What function finds values from the first column of a table?",
+            correctAnswer: "VLOOKUP",
+            wrongAnswers: ["HLOOKUP", "INDEX", "MATCH"]
+        },
+        {
+            clue: "You’ve done vertical lookups—now imagine adding direction!",
+            question: "What function offers more flexibility than VLOOKUP?",
+            correctAnswer: "XLOOKUP",
+            wrongAnswers: ["HLOOKUP", "VLOOKUP", "INDEX"]
+        },
+        {
+            clue: "Combine SUM and IF—clever, right?",
+            question: "What formula sums values only if a condition is met?",
+            correctAnswer: "SUMIF",
+            wrongAnswers: ["SUM", "AVERAGEIF", "COUNTIF"]
+        },
+        {
+            clue: "You just added conditionally; now let’s count with a condition.",
+            question: "Which function counts values that meet a condition?",
+            correctAnswer: "COUNTIF",
+            wrongAnswers: ["COUNT", "SUMIF", "IF"]
+        },
+        {
+            clue: "Think of connecting cells—like glue.",
+            question: "How to join A1 (first) and B1 (last) with a space?",
+            correctAnswer: 'A1 & " " & B1',
+            wrongAnswers: ["CONCATENATE(A1,B1)", "A1+B1", "JOIN(A1,B1)"]
+        },
+        {
+            clue: "The glue was sticky—this one lifts the number!",
+            question: "What function rounds a number up, away from zero?",
+            correctAnswer: "ROUNDUP",
+            wrongAnswers: ["ROUNDDOWN", "ROUND", "CEILING"]
+        },
+        {
+            clue: "Now that your numbers are rounded, make a new workspace.",
+            question: "Keyboard shortcut to insert a worksheet?",
+            correctAnswer: "Shift + F11",
+            wrongAnswers: ["Ctrl + N", "Alt + F11", "Ctrl + Shift + N"]
+        },
+        {
+            clue: "You need to date your new sheet—what’s the date?",
+            question: "What function returns today’s date?",
+            correctAnswer: "TODAY()",
+            wrongAnswers: ["NOW()", "DATE()", "DATEVALUE()"]
+        },
+        {
+            clue: "If you’ve got the date, why not the hour too?",
+            question: "What function gives the current time?",
+            correctAnswer: "NOW()",
+            wrongAnswers: ["TODAY()", "TIME()", "TIMER()"]
+        },
+        {
+            clue: "Think of freezing coordinates in your formula.",
+            question: "Symbol to lock a cell reference in a formula?",
+            correctAnswer: "$",
+            wrongAnswers: ["#", "!", "&"]
+        },
+        {
+            clue: "You’ve locked your cell—now peek inside to count its content.",
+            question: "What function counts the characters in a string?",
+            correctAnswer: "LEN",
+            wrongAnswers: ["COUNT", "SUM", "VALUE"]
+        },
+        {
+            clue: "Start from the LEFT, count a few… grab it.",
+            question: "Which function extracts first few characters?",
+            correctAnswer: "LEFT",
+            wrongAnswers: ["RIGHT", "MID", "TRIM"]
+        },
+        {
+            clue: "Opposite of the LEFT, right?",
+            question: "What function extracts characters from the end?",
+            correctAnswer: "RIGHT",
+            wrongAnswers: ["LEFT", "MID", "LEN"]
+        },
+        {
+            clue: "Time to shout your answer in CAPS!",
+            question: "Function to make all letters uppercase?",
+            correctAnswer: "UPPER",
+            wrongAnswers: ["LOWER", "PROPER", "TRIM"]
+        },
+        {
+            clue: "It can fix a typo—just swap what’s wrong for what’s right.",
+            question: "What replaces part of a text string?",
+            correctAnswer: "SUBSTITUTE",
+            wrongAnswers: ["REPLACE", "FIND", "SEARCH"]
+        },
+        {
+            clue: "You’ve replaced text; now bring it all together again.",
+            question: "What joins multiple texts into one string?",
+            correctAnswer: "CONCATENATE",
+            wrongAnswers: ["TEXTJOIN", "JOIN", "MERGE"]
+        },
+        {
+            clue: "Think financial: principal, rate, time… it’s all there.",
+            question: "Formula for compound interest?",
+            correctAnswer: "=P*(1+R)^T",
+            wrongAnswers: ["=P*(1-R)^T", "=P+R*T", "=P*(R+T)"]
+        },
+        {
+            clue: "After those numbers, it’s time to paint them!",
+            question: "What feature visualizes data with graphs?",
+            correctAnswer: "Charts",
+            wrongAnswers: ["PivotTables", "Sparklines", "Comments"]
+        },
+        {
+            clue: "Summing up—fast! What’s the shortcut key?",
+            question: "Shortcut key for AutoSum?",
+            correctAnswer: "Alt + =",
+            wrongAnswers: ["Ctrl + =", "Alt + Shift + =", "Shift + ="]
+        },
+        {
+            clue: "Divide and conquer—what's leftover?",
+            question: "Function to return remainder after division?",
+            correctAnswer: "MOD",
+            wrongAnswers: ["DIVIDE", "QUOTIENT", "REST"]
+        },
+        {
+            clue: "If this, then that… you know this logic!",
+            question: "What function checks a condition's logic?",
+            correctAnswer: "IF",
+            wrongAnswers: ["THEN", "ELSE", "SWITCH"]
+        },
+        {
+            clue: "To finish, let’s locate our place in the grid.",
+            question: "What formula gives the column number?",
+            correctAnswer: "COLUMN()",
+            wrongAnswers: ["ROW()", "ADDRESS()", "INDEX()"]
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let timerInterval;
+    let timeRemaining = 35 * 60; // 35 minutes in seconds
+    let quizStartTime;
+    let userAnswers = new Array(25).fill(null); // Store user answers
+    let markedForReview = new Array(25).fill(false); // Track marked questions
+
+    // Utility: randomly shuffles options
+    function shuffleOptions(options) {
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+        }
+        return options;
+    }
+
+    let quizEnded = false;
+    // Handlers references so we can remove them if needed
+    let selectionHandler = null;
+    let visibilityHandler = null;
+    let blurHandler = null;
+    let keydownHandler = null;
+    let copyHandler = null;
+    let contextmenuHandler = null;
+    let pasteHandler = null;
+
+    // Anti-cheat incident log
+    let incidents = [];
+
+    // Webcam proctoring state
+    let webcamEnabled = false;
+    let webcamStream = null;
+    let webcamInterval = null;
+    let webcamVideoEl = null;
+    // Head movement detection state
+    let faceModel = null;
+    let faceModelType = null; // 'tf' or 'facedetector'
+    let faceDetector = null; // instance of FaceDetector if available
+    let headMonitoringInterval = null;
+    let headBaseline = null;
+    let headMovementCount = 0;
+    // Adjustable thresholds (modifiable via UI)
+    let HEAD_NORM_THRESHOLD = 0.12; // normalized movement threshold (fraction of video size)
+    let HEAD_FRAMES_ALLOWED = 3; // consecutive frames exceeding threshold before terminate
+    // Debug overlay
+    let debugOverlayEnabled = false;
+    let overlayCanvas = null;
+    let overlayCtx = null;
+    // Pixel-diff fallback state
+    let pixelDiffCanvas = null;
+    let pixelDiffCtx = null;
+    let lastImageData = null;
+    let PIXEL_DIFF_THRESHOLD = 12; // tuned empirically (mean absolute diff)
+
+    function recordIncident(type, details) {
+        try {
+            incidents.push({ type, details, timestamp: new Date().toISOString() });
+        } catch (e) {}
+    }
+
+    async function startWebcamProctoring() {
+        if (webcamEnabled) return;
+        try {
+            webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 }, audio: false });
+            webcamEnabled = true;
+
+            // Create proctor overlay
+            webcamVideoEl = document.createElement('video');
+            webcamVideoEl.autoplay = true;
+            webcamVideoEl.muted = true;
+            webcamVideoEl.playsInline = true;
+            webcamVideoEl.srcObject = webcamStream;
+
+            const wrapper = document.createElement('div');
+            wrapper.id = 'webcam-proctor';
+            wrapper.appendChild(webcamVideoEl);
+
+            const stopBtn = document.createElement('button');
+            stopBtn.textContent = 'Stop';
+            stopBtn.style.position = 'absolute';
+            stopBtn.style.bottom = '6px';
+            stopBtn.style.right = '6px';
+            stopBtn.onclick = function(){ stopWebcamProctoring(true); };
+            wrapper.appendChild(stopBtn);
+
+            document.body.appendChild(wrapper);
+
+            recordIncident('webcam', 'Webcam proctoring started');
+
+            // Wire up UI controls for thresholds/overlay
+            try {
+                const thr = document.getElementById('threshold-range');
+                const thrVal = document.getElementById('threshold-value');
+                const framesEl = document.getElementById('frames-allowed');
+                const overlayEl = document.getElementById('overlay-toggle');
+                if (thr && thrVal) {
+                    thrVal.textContent = thr.value;
+                    thr.addEventListener('input', () => { HEAD_NORM_THRESHOLD = parseFloat(thr.value); thrVal.textContent = thr.value; console.log('HEAD_NORM_THRESHOLD set to', HEAD_NORM_THRESHOLD); });
+                }
+                if (framesEl) {
+                    framesEl.addEventListener('change', () => { HEAD_FRAMES_ALLOWED = parseInt(framesEl.value || '3', 10); console.log('HEAD_FRAMES_ALLOWED set to', HEAD_FRAMES_ALLOWED); });
+                }
+                if (overlayEl) {
+                    overlayEl.addEventListener('change', () => { debugOverlayEnabled = !!overlayEl.checked; if (!debugOverlayEnabled) removeOverlayCanvas(); });
+                    debugOverlayEnabled = !!overlayEl.checked;
+                }
+            } catch (e) {}
+
+            // Load face model for head movement detection
+            try {
+                console.log('Attempting to load face landmarks model or fallback...');
+                // Prefer TF face-landmarks if available
+                if (window.faceLandmarksDetection && typeof faceLandmarksDetection.load === 'function') {
+                    try {
+                        faceModel = await faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages ? faceLandmarksDetection.SupportedPackages.mediapipeFacemesh : undefined);
+                        faceModelType = 'tf';
+                        console.log('Face landmarks model loaded (tf)');
+                        recordIncident('face_model_loaded', 'Face model loaded (tf)');
+                    } catch (err) {
+                        console.warn('TF face-landmarks load failed', err && err.message ? err.message : err);
+                    }
+                }
+                // Fallback: try BlazeFace (TF model)
+                if (!faceModel && window.blazeface && typeof blazeface.load === 'function') {
+                    try {
+                        faceModel = await blazeface.load();
+                        faceModelType = 'blazeface';
+                        console.log('BlazeFace model loaded as fallback');
+                        recordIncident('face_model_loaded', 'BlazeFace model loaded');
+                    } catch (err) {
+                        console.warn('BlazeFace load failed', err && err.message ? err.message : err);
+                    }
+                }
+
+                // Fallback: use built-in FaceDetector API if available (Chromium)
+                if (!faceModel && 'FaceDetector' in window) {
+                    try {
+                        faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+                        faceModelType = 'facedetector';
+                        console.log('Using built-in FaceDetector as fallback');
+                        recordIncident('face_model_loaded', 'FaceDetector fallback enabled');
+                    } catch (err) {
+                        console.warn('FaceDetector initialization failed', err);
+                    }
+                }
+
+                if (!faceModel && !faceDetector) {
+                    console.warn('No TF/FaceDetector available — using pixel-diff fallback');
+                    faceModelType = 'pixeldiff';
+                    recordIncident('face_model_fallback', 'Using pixel-diff fallback for head movement detection');
+                }
+            } catch (e) {
+                console.error('Face model selection unexpected error', e);
+                recordIncident('face_model_error', 'Face model selection failed: ' + (e && e.message ? e.message : e));
+            }
+
+            // Start monitoring head movement if any detection method is available
+            try {
+                if (faceModel || faceDetector || faceModelType === 'pixeldiff') startHeadMonitoring();
+            } catch (e) { console.error(e); }
+            // Capture periodic snapshots (every 30s) and record incidents if capture fails
+            webcamInterval = setInterval(() => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 160; canvas.height = 120;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(webcamVideoEl, 0, 0, canvas.width, canvas.height);
+                    // Optionally convert to blob and send to server or analyze — here we only check success
+                    canvas.toBlob(b => {
+                        if (!b || b.size < 100) {
+                            recordIncident('webcam_snapshot_failed', 'Snapshot capture produced small/empty blob');
+                        } else {
+                            // store a tiny record that a snapshot was taken
+                            recordIncident('webcam_snapshot', `snapshot ${new Date().toISOString()}`);
+                        }
+                    }, 'image/jpeg', 0.7);
+                } catch (e) {
+                    recordIncident('webcam_error', 'Error taking webcam snapshot');
+                }
+            }, 30000);
+        } catch (e) {
+            recordIncident('webcam_denied', 'User denied or webcam unavailable');
+            alert('Webcam unavailable or permission denied. Proctoring disabled.');
+        }
+    }
+
+    function stopWebcamProctoring(userRequested = false) {
+        try {
+            if (!webcamEnabled) return;
+            webcamEnabled = false;
+            if (webcamInterval) { clearInterval(webcamInterval); webcamInterval = null; }
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(t => t.stop());
+                webcamStream = null;
+            }
+            const el = document.getElementById('webcam-proctor');
+            if (el) el.remove();
+            removeOverlayCanvas();
+            recordIncident('webcam_stopped', userRequested ? 'User stopped proctoring' : 'Proctoring stopped');
+        } catch (e) {}
+    }
+
+    function startHeadMonitoring() {
+        if (headMonitoringInterval || !webcamVideoEl) return;
+        headBaseline = null;
+        headMovementCount = 0;
+
+        headMonitoringInterval = setInterval(async () => {
+            try {
+                if (!webcamVideoEl || webcamVideoEl.readyState < 2) return;
+                let keypoints = null;
+                let center = null;
+
+                // Pixel-diff fallback monitoring (doesn't need face model)
+                if (faceModelType === 'pixeldiff') {
+                    try {
+                        if (!pixelDiffCanvas) {
+                            pixelDiffCanvas = document.createElement('canvas');
+                            pixelDiffCanvas.width = 160; pixelDiffCanvas.height = 120;
+                            pixelDiffCtx = pixelDiffCanvas.getContext('2d');
+                        }
+                        pixelDiffCtx.drawImage(webcamVideoEl, 0, 0, pixelDiffCanvas.width, pixelDiffCanvas.height);
+                        const img = pixelDiffCtx.getImageData(0,0,pixelDiffCanvas.width, pixelDiffCanvas.height);
+                        if (lastImageData) {
+                            let sum = 0;
+                            for (let i = 0; i < img.data.length; i += 4) {
+                                const r = img.data[i], g = img.data[i+1], b = img.data[i+2];
+                                const lr = lastImageData.data[i], lg = lastImageData.data[i+1], lb = lastImageData.data[i+2];
+                                sum += Math.abs(r - lr) + Math.abs(g - lg) + Math.abs(b - lb);
+                            }
+                            const mean = sum / (img.data.length/4);
+                            console.log('pixel-diff mean', mean.toFixed(2));
+                            if (mean > PIXEL_DIFF_THRESHOLD) {
+                                headMovementCount++;
+                            } else {
+                                headMovementCount = 0;
+                            }
+
+                            if (headMovementCount >= HEAD_FRAMES_ALLOWED) {
+                                recordIncident('head_movement_pixeldiff', `pixel-diff mean=${mean.toFixed(2)} exceeded threshold`);
+                                finishQuiz(false, 'Excessive head movement detected (pixel-diff)');
+                                return;
+                            }
+                        }
+                        lastImageData = img;
+                    } catch (e) { console.warn('pixeldiff error', e); }
+                }
+
+                if (faceModelType === 'tf' && faceModel && typeof faceModel.estimateFaces === 'function') {
+                    const preds = await faceModel.estimateFaces({input: webcamVideoEl, returnTensors: false, flipHorizontal: false});
+                    if (preds && preds.length > 0) {
+                        const p = preds[0];
+                        keypoints = p.scaledMesh || p.keypoints || [];
+                        // compute center from keypoints
+                        let cx = 0, cy = 0;
+                        for (let i = 0; i < keypoints.length; i++) { cx += keypoints[i][0]; cy += keypoints[i][1]; }
+                        cx /= keypoints.length; cy /= keypoints.length;
+                        center = {cx, cy};
+                    }
+                } else if (faceModelType === 'blazeface' && faceModel && typeof faceModel.estimateFaces === 'function') {
+                    // BlazeFace returns topLeft and bottomRight
+                    const preds = await faceModel.estimateFaces(webcamVideoEl, false);
+                    if (preds && preds.length > 0) {
+                        const p = preds[0];
+                        const tl = p.topLeft || p.boundingBox && p.boundingBox.topLeft;
+                        const br = p.bottomRight || p.boundingBox && p.boundingBox.bottomRight;
+                        if (tl && br) {
+                            const cx = (tl[0] + br[0]) / 2;
+                            const cy = (tl[1] + br[1]) / 2;
+                            center = {cx, cy};
+                            keypoints = p.landmarks || [tl, br];
+                        }
+                    }
+                } else if (faceModelType === 'facedetector' && faceDetector) {
+                    // Use FaceDetector API
+                    const faces = await faceDetector.detect(webcamVideoEl).catch(err => { console.warn('FaceDetector.detect error', err); return []; });
+                    if (faces && faces.length > 0) {
+                        const f = faces[0];
+                        const bb = f.boundingBox || f.box || null;
+                        if (bb) {
+                            const cx = bb.x + (bb.width || bb.right - bb.x || 0) / 2;
+                            const cy = bb.y + (bb.height || bb.bottom - bb.y || 0) / 2;
+                            center = {cx, cy};
+                            // create coarse keypoints array from bounding box corners for overlay
+                            keypoints = [ [bb.x, bb.y], [bb.x + (bb.width||0), bb.y], [bb.x, bb.y + (bb.height||0)], [bb.x + (bb.width||0), bb.y + (bb.height||0)] ];
+                        }
+                    }
+                } else {
+                    // No model available
+                    return;
+                }
+
+                if (!center) {
+                    recordIncident('no_face_detected', 'Face not detected in frame');
+                    if (debugOverlayEnabled) clearOverlay();
+                    return;
+                }
+
+                    // Use computed center
+                    const cx = center.cx, cy = center.cy;
+
+                    if (!headBaseline) {
+                        headBaseline = {cx, cy};
+                        console.log('Head baseline set', headBaseline);
+                        return;
+                    }
+
+                    const dx = cx - headBaseline.cx;
+                    const dy = cy - headBaseline.cy;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const vw = Math.max(webcamVideoEl.videoWidth || webcamVideoEl.width || 320, 1);
+                    const vh = Math.max(webcamVideoEl.videoHeight || webcamVideoEl.height || 240, 1);
+                    const norm = dist / Math.max(vw, vh);
+
+                    console.log('head norm', norm.toFixed(4), 'dx', dx.toFixed(1), 'dy', dy.toFixed(1), 'threshold', HEAD_NORM_THRESHOLD, 'count', headMovementCount, 'model', faceModelType);
+
+                    // Draw overlay if enabled
+                    try {
+                        if (debugOverlayEnabled) drawOverlay(keypoints, {cx, cy}, headBaseline);
+                    } catch (e) {}
+
+                    if (norm > HEAD_NORM_THRESHOLD) {
+                        headMovementCount++;
+                    } else {
+                        headMovementCount = 0;
+                    }
+
+                    if (headMovementCount >= HEAD_FRAMES_ALLOWED) {
+                        recordIncident('head_movement', `movement norm=${norm.toFixed(3)} exceeded threshold`);
+                        console.warn('Excessive head movement detected — terminating quiz');
+                        finishQuiz(false, 'Excessive head movement detected');
+                    }
+            } catch (e) {
+                recordIncident('head_monitor_error', e.message || 'error');
+            }
+        }, 800);
+    }
+
+    function stopHeadMonitoring() {
+        try {
+            if (headMonitoringInterval) { clearInterval(headMonitoringInterval); headMonitoringInterval = null; }
+            headBaseline = null; headMovementCount = 0;
+        } catch (e) {}
+    }
+
+    // Overlay helpers
+    function createOverlayCanvas(width, height) {
+        removeOverlayCanvas();
+        overlayCanvas = document.createElement('canvas');
+        overlayCanvas.id = 'debug-overlay';
+        overlayCanvas.style.position = 'fixed';
+        overlayCanvas.style.right = '14px';
+        overlayCanvas.style.bottom = '14px';
+        overlayCanvas.style.width = '160px';
+        overlayCanvas.style.height = '120px';
+        overlayCanvas.width = width;
+        overlayCanvas.height = height;
+        overlayCanvas.style.zIndex = 9999;
+        overlayCanvas.style.borderRadius = '6px';
+        overlayCanvas.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+        overlayCtx = overlayCanvas.getContext('2d');
+        document.body.appendChild(overlayCanvas);
+    }
+
+    function removeOverlayCanvas() {
+        try { if (overlayCanvas) { overlayCanvas.remove(); overlayCanvas = null; overlayCtx = null; } } catch (e) {}
+    }
+
+    function clearOverlay() {
+        try { if (overlayCtx && overlayCanvas) overlayCtx.clearRect(0,0,overlayCanvas.width, overlayCanvas.height); } catch (e) {}
+    }
+
+    function drawOverlay(keypoints, center, baseline) {
+        try {
+            if (!overlayCanvas || !overlayCtx) createOverlayCanvas(webcamVideoEl.videoWidth || 160, webcamVideoEl.videoHeight || 120);
+            const ctx = overlayCtx;
+            const cw = overlayCanvas.width, ch = overlayCanvas.height;
+            ctx.clearRect(0,0,cw,ch);
+            ctx.save();
+            ctx.scale(cw / (webcamVideoEl.videoWidth || cw), ch / (webcamVideoEl.videoHeight || ch));
+
+            // draw keypoints (a subset for speed)
+            ctx.fillStyle = 'rgba(0,200,80,0.9)';
+            for (let i = 0; i < keypoints.length; i+=4) {
+                const kp = keypoints[i];
+                ctx.beginPath(); ctx.arc(kp[0], kp[1], 1.6, 0, Math.PI*2); ctx.fill();
+            }
+
+            // draw center
+            ctx.fillStyle = 'rgba(255,0,0,0.9)';
+            ctx.beginPath(); ctx.arc(center.cx, center.cy, 3, 0, Math.PI*2); ctx.fill();
+
+            // draw baseline
+            if (baseline) {
+                ctx.strokeStyle = 'rgba(255,165,0,0.9)'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(baseline.cx, baseline.cy); ctx.lineTo(center.cx, center.cy); ctx.stroke();
+            }
+
+            ctx.restore();
+        } catch (e) { console.error('drawOverlay error', e); }
+    }
+
+    function getRegisteredUser() {
+        try {
+            const raw = localStorage.getItem('quizUser');
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function checkQuizCompletion(userName) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+            
+            const res = await fetch(`/api/quiz-status/${encodeURIComponent(userName)}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.completed) {
+                    // Disable the quiz and show message
+                    const startBtn = document.querySelector('button[onclick="registerAndStart()"]');
+                    const container = document.getElementById('start-screen');
+                    if (startBtn) startBtn.disabled = true;
+                    
+                    const msg = document.createElement('div');
+                    msg.style.cssText = 'background: #ff6b6b; color: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 500px; text-align: center; font-weight: bold;';
+                    msg.innerHTML = '<h3>⚠️ Quiz Already Completed</h3><p>You have already taken this quiz. Please restart the server to take it again.</p>';
+                    if (container) container.insertBefore(msg, container.firstChild);
+                }
+            }
+        } catch (e) {
+            // Server not available or timeout, allow quiz
+            console.log('Quiz completion check skipped:', e.message);
+        }
+    }
+
+    async function registerAndStart() {
+        const nameEl = document.getElementById('registrant-name');
+        const emailEl = document.getElementById('registrant-email');
+        const name = nameEl ? nameEl.value.trim() : '';
+        const email = emailEl ? emailEl.value.trim() : '';
+        if (!name) {
+            alert('Please enter your name to register');
+            return;
+        }
+        
+        // Check if user has already completed quiz (with timeout)
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+            
+            const res = await fetch(`/api/quiz-status/${encodeURIComponent(name)}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.completed) {
+                    alert('You have already completed this quiz. Please restart the server to take it again.');
+                    return;
+                }
+            }
+        } catch (e) {
+            // Server not available or timeout, proceed
+            console.log('Server check skipped:', e.message);
+        }
+        
+        const user = { name: name, email: email };
+        localStorage.setItem('quizUser', JSON.stringify(user));
+        startQuiz();
+    }
+
+    async function sendScoreToServer(payload) {
+        // Try to POST to local server; if it fails, fallback to saving locally
+        try {
+            const res = await fetch('/api/scores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error('Server rejected');
+            // show confirmation on results page
+            const div = document.createElement('div');
+            div.style.marginTop = '12px';
+            div.style.color = '#28a745';
+            div.textContent = 'Score submitted to server successfully.';
+            document.getElementById('quiz-results').appendChild(div);
+            return;
+        } catch (e) {
+            // fallback: save to localStorage
+            try {
+                const key = 'localScores';
+                const existingRaw = localStorage.getItem(key);
+                const arr = existingRaw ? JSON.parse(existingRaw) : [];
+                arr.push(payload);
+                localStorage.setItem(key, JSON.stringify(arr));
+                const div = document.createElement('div');
+                div.style.marginTop = '12px';
+                div.style.color = '#ff9800';
+                div.textContent = 'Server not available — score saved locally in this browser.';
+                document.getElementById('quiz-results').appendChild(div);
+            } catch (ee) {
+                // ignore
+            }
+        }
+    }
+
+    function startQuiz() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-container').style.display = 'block';
+        quizStartTime = new Date();
+        startTimer();
+        createQuestionGrid();
+        displayQuestion();
+
+        // Check if webcam proctoring requested
+        try {
+            const cb = document.getElementById('enable-webcam');
+            if (cb && cb.checked) {
+                startWebcamProctoring();
+            }
+        } catch (e) {}
+
+        // Attach anti-cheat handlers when quiz starts
+        selectionHandler = function() {
+            if (quizEnded) return;
+            try {
+                const sel = window.getSelection();
+                const text = sel ? sel.toString().trim() : '';
+                if (text.length > 0) {
+                    // Ensure selection occurred inside the quiz area
+                    const node = sel.anchorNode || sel.focusNode;
+                    if (node) {
+                        const el = (node.nodeType === 3) ? node.parentElement : node;
+                        const quizEl = document.getElementById('quiz');
+                        if (quizEl && quizEl.contains(el)) {
+                            finishQuiz(false, 'Text selection detected (possible cheating)');
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore any selection inspection errors
+            }
+        };
+
+        visibilityHandler = function() {
+            if (quizEnded) return;
+            if (document.visibilityState !== 'visible') {
+                finishQuiz(false, 'Left the tab/window (visibility change)');
+            }
+        };
+
+        blurHandler = function() {
+            if (quizEnded) return;
+            // Window lost focus (user switched app or tab)
+            finishQuiz(false, 'Window lost focus');
+        };
+
+        document.addEventListener('selectionchange', selectionHandler);
+        document.addEventListener('visibilitychange', visibilityHandler);
+        window.addEventListener('blur', blurHandler);
+
+        // Detect PrintScreen key (keyCode 44) and other key-based screenshots
+        keydownHandler = function(e) {
+            if (quizEnded) return;
+            try {
+                const k = e.key || '';
+                if (k.toLowerCase().includes('print') || e.keyCode === 44) {
+                    // Record incident but do not immediately end the quiz — warn the user
+                    recordIncident('screenshot', 'PrintScreen key pressed');
+                    alert('Screenshot attempt detected. This action has been recorded.');
+                    // Optionally you can end the quiz instead: finishQuiz(false, 'Screenshot detected');
+                }
+
+                // Detect common copy shortcuts
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+                    recordIncident('copy_shortcut', 'Ctrl/Cmd+C pressed');
+                    finishQuiz(false, 'Copy shortcut detected (possible cheating)');
+                }
+            } catch (e) {}
+        };
+
+        copyHandler = function(e) {
+            if (quizEnded) return;
+            try {
+                // If selection is inside quiz area, treat as cheating
+                const sel = window.getSelection();
+                const node = sel ? (sel.anchorNode || sel.focusNode) : null;
+                const quizEl = document.getElementById('quiz');
+                if (node && quizEl && quizEl.contains((node.nodeType === 3) ? node.parentElement : node)) {
+                    recordIncident('copy', 'User copied text from quiz area');
+                    finishQuiz(false, 'Copy action detected');
+                }
+            } catch (e) {}
+        };
+
+        contextmenuHandler = function(e) {
+            if (quizEnded) return;
+            try {
+                // Right-click context menu inside quiz — record and prevent
+                const quizEl = document.getElementById('quiz');
+                if (quizEl && quizEl.contains(e.target)) {
+                    e.preventDefault();
+                    recordIncident('right_click', 'Context menu attempted inside quiz');
+                    alert('Right-click is disabled during the quiz. This action has been recorded.');
+                }
+            } catch (e) {}
+        };
+
+        // Detect paste events — if an image is pasted, it may be a screenshot
+        pasteHandler = function(e) {
+            if (quizEnded) return;
+            try {
+                const items = (e.clipboardData || window.clipboardData).items;
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        if (item.type && item.type.indexOf('image') !== -1) {
+                            recordIncident('paste_image', 'Image pasted into page (possible screenshot)');
+                            alert('Image paste detected. This action has been recorded.');
+                        }
+                    }
+                }
+            } catch (e) {}
+        };
+
+        document.addEventListener('keydown', keydownHandler);
+        document.addEventListener('copy', copyHandler);
+        document.addEventListener('contextmenu', contextmenuHandler);
+        document.addEventListener('paste', pasteHandler);
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(function() {
+            timeRemaining--;
+            updateTimerDisplay();
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                finishQuiz(true); // true indicates time's up
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        const timerElement = document.getElementById('timer');
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Change color based on time remaining
+        if (timeRemaining <= 300) { // 5 minutes
+            timerElement.className = 'danger';
+        } else if (timeRemaining <= 600) { // 10 minutes
+            timerElement.className = 'warning';
+        } else {
+            timerElement.className = '';
+        }
+    }
+
+    function createQuestionGrid() {
+        const grid = document.getElementById('question-grid');
+        grid.innerHTML = '';
+        
+        for (let i = 0; i < quizData.length; i++) {
+            const gridItem = document.createElement('div');
+            gridItem.className = 'grid-item';
+            gridItem.textContent = i + 1;
+            gridItem.onclick = () => navigateToQuestion(i);
+            gridItem.id = `grid-${i}`;
+            grid.appendChild(gridItem);
+        }
+        updateQuestionGrid();
+    }
+
+    function updateQuestionGrid() {
+        for (let i = 0; i < quizData.length; i++) {
+            const gridItem = document.getElementById(`grid-${i}`);
+            gridItem.className = 'grid-item';
+            
+            if (i === currentQuestion) {
+                gridItem.classList.add('current');
+            } else if (userAnswers[i] !== null) {
+                gridItem.classList.add('answered');
+            }
+            
+            if (markedForReview[i]) {
+                gridItem.classList.add('marked');
+            }
+        }
+    }
+
+    function navigateToQuestion(questionIndex) {
+        currentQuestion = questionIndex;
+        displayQuestion();
+        updateQuestionGrid();
+        updateNavigationButtons();
+    }
+
+    function displayQuestion() {
+        if (currentQuestion < quizData.length) {
+            const currentData = quizData[currentQuestion];
+            
+            // Update question counter
+            document.getElementById('current-q').textContent = currentQuestion + 1;
+            document.getElementById('total-q').textContent = quizData.length;
+            
+            // Display clue followed by the question
+            document.getElementById('question').innerHTML = 
+                `<div style="margin-bottom: 15px;"><strong style="color: #667eea;">Clue:</strong> ${currentData.clue}</div>
+                 <div><strong style="color: #2c3e50;">Question:</strong> ${currentData.question}</div>`;
+            
+            const options = [currentData.correctAnswer, ...currentData.wrongAnswers];
+            const shuffledOptions = shuffleOptions(options.slice());
+            const optionsList = document.getElementById('options');
+            optionsList.innerHTML = "";
+            
+            shuffledOptions.forEach((option, index) => {
+                const li = document.createElement('li');
+                li.textContent = option;
+                li.onclick = function() { selectAnswer(option, li); };
+                li.style.animationDelay = `${index * 0.1}s`;
+                
+                // Restore selection if user already answered this question
+                if (userAnswers[currentQuestion] === option) {
+                    li.classList.add('selected');
+                }
+                
+                optionsList.appendChild(li);
+            });
+            
+            // Update mark for review button
+            const markBtn = document.getElementById('mark-review-btn');
+            if (markedForReview[currentQuestion]) {
+                markBtn.textContent = 'Unmark Review';
+                markBtn.classList.add('marked');
+            } else {
+                markBtn.textContent = 'Mark for Review';
+                markBtn.classList.remove('marked');
+            }
+            
+            updateNavigationButtons();
+            updateQuestionGrid();
+        }
+    }
+
+    function selectAnswer(selected, element) {
+        // Remove previous selection
+        document.querySelectorAll('#options li').forEach(li => {
+            li.classList.remove('selected');
+        });
+        
+        // Add selection to clicked element
+        element.classList.add('selected');
+        
+        // Store the answer
+        userAnswers[currentQuestion] = selected;
+        
+        // Update grid
+        updateQuestionGrid();
+    }
+
+    function toggleMarkForReview() {
+        markedForReview[currentQuestion] = !markedForReview[currentQuestion];
+        const markBtn = document.getElementById('mark-review-btn');
+        
+        if (markedForReview[currentQuestion]) {
+            markBtn.textContent = 'Unmark Review';
+            markBtn.classList.add('marked');
+        } else {
+            markBtn.textContent = 'Mark for Review';
+            markBtn.classList.remove('marked');
+        }
+        
+        updateQuestionGrid();
+    }
+
+    function clearSelection() {
+        // Remove visual selection
+        document.querySelectorAll('#options li').forEach(li => {
+            li.classList.remove('selected');
+        });
+        
+        // Clear stored answer
+        userAnswers[currentQuestion] = null;
+        
+        // Update grid
+        updateQuestionGrid();
+    }
+
+    function updateNavigationButtons() {
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Previous button
+        prevBtn.disabled = currentQuestion === 0;
+        
+        // Next/Submit buttons
+        if (currentQuestion === quizData.length - 1) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+        } else {
+            nextBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function previousQuestion() {
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            displayQuestion();
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQuestion < quizData.length - 1) {
+            currentQuestion++;
+            displayQuestion();
+        }
+    }
+
+    function finishQuiz(timeUp = false, reason = null) {
+        if (quizEnded) return; // prevent double finish
+        quizEnded = true;
+
+        // Clear the timer if it's still running
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+
+        // Remove anti-cheat listeners
+        try {
+            if (selectionHandler) document.removeEventListener('selectionchange', selectionHandler);
+            if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
+            if (blurHandler) window.removeEventListener('blur', blurHandler);
+            if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+            if (copyHandler) document.removeEventListener('copy', copyHandler);
+            if (contextmenuHandler) document.removeEventListener('contextmenu', contextmenuHandler);
+            if (pasteHandler) document.removeEventListener('paste', pasteHandler);
+        } catch (e) {}
+
+        // Stop webcam proctoring if active
+        try { stopWebcamProctoring(false); } catch (e) {}
+        try { stopHeadMonitoring(); } catch (e) {}
+
+        // Calculate final score
+        score = 0;
+        let answeredQuestions = 0;
+
+        for (let i = 0; i < quizData.length; i++) {
+            if (userAnswers[i] !== null) {
+                answeredQuestions++;
+                if (userAnswers[i] === quizData[i].correctAnswer) {
+                    score++;
+                }
+            }
+        }
+
+        document.getElementById('quiz-container').style.display = "none";
+        const results = document.getElementById('quiz-results');
+        results.style.display = "block";
+        results.style.animation = 'slideIn 0.8s ease-out';
+
+        // Calculate time taken
+        const timeElapsed = 35 * 60 - timeRemaining; // seconds
+        const minutesTaken = Math.floor(timeElapsed / 60);
+        const secondsTaken = timeElapsed % 60;
+
+        // Render immediate score summary (always show regardless of server)
+        const pct = Math.round((score / quizData.length) * 100);
+        const scoreHtml = `
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div style="width:120px; height:120px; border-radius:60px; background:linear-gradient(135deg,#4caf50,#2e7d32); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4em; font-weight:bold; box-shadow:0 8px 24px rgba(0,0,0,0.15);">
+                    ${score}/${quizData.length}
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:1.2em; font-weight:700; color:#333;">Your Score</div>
+                    <div style="margin-top:6px; color:#666;">Answered: ${answeredQuestions} of ${quizData.length}</div>
+                    <div style="margin-top:12px; background:#e9ecef; height:14px; border-radius:8px; overflow:hidden;">
+                        <div style="width:${pct}%; height:14px; background:linear-gradient(90deg,#28a745,#20c997);"></div>
+                    </div>
+                    <div style="margin-top:6px; color:#555;">${pct}%</div>
+                </div>
+            </div>`;
+
+        document.getElementById('score').innerHTML = scoreHtml;
+
+        if (timeUp) {
+            document.getElementById('time-taken').innerHTML = `
+                <div style="color: #dc3545; font-weight: bold; font-size: 1.2em;">
+                    ⏰ Time's Up!
+                </div>
+                <div style="color: #666; margin-top: 10px;">
+                    You answered ${answeredQuestions} out of ${quizData.length} questions in 35 minutes.
+                </div>`;
+        } else {
+            let reasonHtml = '';
+            if (reason) {
+                reasonHtml = `<div style="color: #dc3545; font-weight: bold; margin-top:10px;">⚠️ Quiz terminated: ${reason}</div>`;
+            }
+
+            document.getElementById('time-taken').innerHTML = `
+                <div style="color: #28a745; font-weight: bold;">
+                    ✅ Quiz Completed!
+                </div>
+                <div style="color: #666; margin-top: 10px;">
+                    Time taken: ${minutesTaken}:${secondsTaken.toString().padStart(2, '0')}
+                </div>` + reasonHtml;
+        }
+
+        // Persist the score: try sending to server, fallback to localStorage
+        try {
+            const user = getRegisteredUser() || { name: 'Anonymous', email: '' };
+            const payload = {
+                name: user.name,
+                email: user.email,
+                score: score,
+                answeredQuestions: answeredQuestions,
+                totalQuestions: quizData.length,
+                timeTaken: `${minutesTaken}:${secondsTaken.toString().padStart(2, '0')}`,
+                reason: reason || (timeUp ? 'TimeUp' : 'Completed'),
+                incidents: incidents,
+                date: new Date().toISOString()
+            };
+            // Send to server asynchronously but do not block UI rendering
+            sendScoreToServer(payload).catch(() => {});
+            // Render recorded incidents in the results view
+            try {
+                const resultsDiv = document.getElementById('quiz-results');
+                const existing = document.getElementById('incident-list');
+                if (existing) existing.remove();
+
+                if (incidents && incidents.length > 0) {
+                    const incDiv = document.createElement('div');
+                    incDiv.id = 'incident-list';
+                    incDiv.style.marginTop = '18px';
+                    incDiv.style.padding = '12px';
+                    incDiv.style.background = '#fff3cd';
+                    incDiv.style.border = '1px solid #ffeeba';
+                    incDiv.style.borderRadius = '8px';
+                    incDiv.innerHTML = `<strong style="color:#856404;">Recorded incidents during the quiz:</strong>`;
+                    const ul = document.createElement('ul');
+                    ul.style.marginTop = '8px';
+                    incidents.forEach(it => {
+                        const li = document.createElement('li');
+                        li.style.margin = '6px 0';
+                        li.textContent = `${it.timestamp} — ${it.type}: ${it.details}`;
+                        ul.appendChild(li);
+                    });
+                    incDiv.appendChild(ul);
+                    resultsDiv.appendChild(incDiv);
+                }
+            } catch (e) {}
+            // Render recorded incidents in the results view
+            try {
+                const resultsDiv = document.getElementById('quiz-results');
+                // Remove previous incident list if any
+                const existing = document.getElementById('incident-list');
+                if (existing) existing.remove();
+
+                if (incidents && incidents.length > 0) {
+                    const incDiv = document.createElement('div');
+                    incDiv.id = 'incident-list';
+                    incDiv.style.marginTop = '18px';
+                    incDiv.style.padding = '12px';
+                    incDiv.style.background = '#fff3cd';
+                    incDiv.style.border = '1px solid #ffeeba';
+                    incDiv.style.borderRadius = '8px';
+                    incDiv.innerHTML = `<strong style="color:#856404;">Recorded incidents during the quiz:</strong>`;
+                    const ul = document.createElement('ul');
+                    ul.style.marginTop = '8px';
+                    incidents.forEach(it => {
+                        const li = document.createElement('li');
+                        li.style.margin = '6px 0';
+                        li.textContent = `${it.timestamp} — ${it.type}: ${it.details}`;
+                        ul.appendChild(li);
+                    });
+                    incDiv.appendChild(ul);
+                    resultsDiv.appendChild(incDiv);
+                }
+            } catch (e) {}
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    window.onload = async function(){
+        // Prefill registration if available and show start screen
+        try {
+            const user = getRegisteredUser();
+            if (user) {
+                const nameEl = document.getElementById('registrant-name');
+                const emailEl = document.getElementById('registrant-email');
+                if (nameEl) nameEl.value = user.name || '';
+                if (emailEl) emailEl.value = user.email || '';
+                
+                // Check if this user has already completed the quiz (server-side check)
+                await checkQuizCompletion(user.name);
+            }
+        } catch (e) {}
+        document.getElementById('start-screen').style.display = 'block';
+    }
+
+    </script>
+
+    <script>
+    // Small helper to allow reviewing answers after finishing
+    function reviewAnswers() {
+        try {
+            // Show questions with user's answers in a simple modal-style view
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.left = '0';
+            overlay.style.top = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.background = 'rgba(0,0,0,0.6)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '9999';
+
+            const box = document.createElement('div');
+            box.style.width = '90%';
+            box.style.maxWidth = '900px';
+            box.style.maxHeight = '80%';
+            box.style.overflow = 'auto';
+            box.style.background = 'white';
+            box.style.padding = '18px';
+            box.style.borderRadius = '12px';
+
+            const title = document.createElement('h3');
+            title.textContent = 'Review Answers';
+            box.appendChild(title);
+
+            quizData.forEach((q, idx) => {
+                const qdiv = document.createElement('div');
+                qdiv.style.padding = '10px 0';
+                qdiv.style.borderBottom = '1px solid #eee';
+                const qtitle = document.createElement('div');
+                qtitle.style.fontWeight = '700';
+                qtitle.textContent = `${idx+1}. ${q.question}`;
+                const your = document.createElement('div');
+                your.style.marginTop = '6px';
+                your.textContent = `Your answer: ${userAnswers[idx] === null ? '(no answer)' : userAnswers[idx]}`;
+                const correct = document.createElement('div');
+                correct.style.color = q.correctAnswer === userAnswers[idx] ? '#2e7d32' : '#c62828';
+                correct.textContent = `Correct answer: ${q.correctAnswer}`;
+                qdiv.appendChild(qtitle);
+                qdiv.appendChild(your);
+                qdiv.appendChild(correct);
+                box.appendChild(qdiv);
+            });
+
+            const close = document.createElement('button');
+            close.textContent = 'Close';
+            close.style.marginTop = '12px';
+            close.style.padding = '10px 14px';
+            close.style.border = 'none';
+            close.style.background = '#667eea';
+            close.style.color = 'white';
+            close.style.borderRadius = '8px';
+            close.onclick = function(){ overlay.remove(); };
+            box.appendChild(close);
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        } catch (e) {}
+    }
+    </script>
+
+</body>
+</html>

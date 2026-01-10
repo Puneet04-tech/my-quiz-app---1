@@ -1,0 +1,17 @@
+{
+  "name": "my-quiz-app",
+  "version": "1.0.0",
+  "description": "Local quiz app with persistent score storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server_clean.js",
+    "migrate": "node migrate_scores.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.18.3",
+    "pg": "^8.11.0"
+  }
+}

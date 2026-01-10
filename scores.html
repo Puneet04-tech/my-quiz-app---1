@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Saved Scores</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f4f4f4; }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Saved Quiz Scores</h1>
+  <p>This page shows scores submitted by registered users. Data is persisted on the project filesystem by the local server.</p>
+  <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+    <button id="refresh-btn">Refresh</button>
+    <button id="clear-local-btn" title="Remove locally saved scores">Clear Local Scores</button>
+    <span id="last-updated" style="margin-left:12px;color:#666;"></span>
+  </div>
+  <div id="status" style="margin-top:12px; color:#555;">Loading...</div>
+  <div id="scores-list" style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
+
+  <script>
+    async function loadScores() {
+      const container = document.getElementById('scores-list');
+      container.innerHTML = '';
+
+      // Try to fetch from server first
+      let serverScores = [];
+      try {
+        const res = await fetch('/api/scores');
+        if (res.ok) {
+          serverScores = await res.json();
+        }
+      } catch (e) {
+        // server not available
+      }
+
+      // Always also include local fallback scores saved in browser
+      let localScores = [];
+      try {
+        const raw = localStorage.getItem('localScores');
+        if (raw) localScores = JSON.parse(raw);
+      } catch (e) {}
+
+      const combined = [];
+      if (Array.isArray(serverScores) && serverScores.length) combined.push(...serverScores);
+      if (Array.isArray(localScores) && localScores.length) combined.push(...localScores);
+
+      if (combined.length === 0) {
+        document.getElementById('status').textContent = 'No scores yet.';
+        return;
+      }
+
+      // show newest first
+      combined.reverse().forEach(s => {
+        const card = document.createElement('div');
+        card.style.background = 'white';
+        card.style.border = '1px solid #eee';
+        card.style.padding = '12px';
+        card.style.borderRadius = '8px';
+        card.style.boxShadow = '0 6px 18px rgba(0,0,0,0.04)';
+
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+
+        const name = document.createElement('div');
+        name.style.fontWeight = '700';
+        name.textContent = s.name || 'Anonymous';
+
+        const score = document.createElement('div');
+        score.style.fontSize = '1.2em';
+        score.style.fontWeight = '800';
+        score.style.color = '#2e7d32';
+        score.textContent = `${s.score || ''}/${s.totalQuestions || ''}`;
+
+        header.appendChild(name);
+        header.appendChild(score);
+
+        const meta = document.createElement('div');
+        meta.style.marginTop = '8px';
+        meta.style.color = '#666';
+        meta.style.fontSize = '0.95em';
+        meta.innerHTML = `Answered: ${s.answeredQuestions || ''} • Time: ${s.timeTaken || ''} • Reason: ${s.reason || ''}`;
+
+        const footer = document.createElement('div');
+        footer.style.marginTop = '10px';
+        footer.style.fontSize = '0.85em';
+        footer.style.color = '#888';
+        footer.textContent = s.receivedAt || s.date || '';
+
+        card.appendChild(header);
+        card.appendChild(meta);
+        card.appendChild(footer);
+
+        container.appendChild(card);
+      });
+
+      const status = document.getElementById('status');
+      if (serverScores.length === 0 && localScores.length > 0) {
+        status.textContent = 'Server not available — showing locally saved scores stored in this browser.';
+      } else {
+        status.style.display = 'none';
+      }
+    }
+    loadScores();
+
+    // Wire refresh and clear buttons
+    document.getElementById('refresh-btn').addEventListener('click', loadScores);
+    document.getElementById('clear-local-btn').addEventListener('click', function(){
+      if (!confirm('Clear all locally saved scores in this browser?')) return;
+      localStorage.removeItem('localScores');
+      loadScores();
+    });
+
+    // Try WebSocket live updates (preferred) — fall back to polling
+    function setupWebSocket() {
+      try {
+        const scheme = (location.protocol === 'https:') ? 'wss' : 'ws';
+        const wsUrl = `${scheme}://${location.host}`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.addEventListener('open', () => {
+          console.log('WebSocket connected for live score updates');
+          document.getElementById('last-updated').textContent = 'Live updates enabled';
+        });
+
+        socket.addEventListener('message', evt => {
+          try {
+            const msg = JSON.parse(evt.data);
+            if (msg && msg.type === 'new-score' && msg.payload) {
+              // prepend the new score to the table
+              const tbody = document.querySelector('#scores-table tbody');
+              const s = msg.payload;
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td class="center">${s.id || ''}</td>
+                <td>${s.name || ''}</td>
+                <td>${s.email || ''}</td>
+                <td class="center">${s.score || ''}</td>
+                <td class="center">${s.answeredQuestions || ''}</td>
+                <td class="center">${s.totalQuestions || ''}</td>
+                <td class="center">${s.timeTaken || ''}</td>
+                <td>${s.reason || ''}</td>
+                <td>${s.receivedAt || s.date || ''}</td>
+              `;
+              // ensure table visible
+              document.getElementById('scores-table').style.display = 'table';
+              document.getElementById('status').style.display = 'none';
+              tbody.insertBefore(tr, tbody.firstChild);
+            }
+          } catch (e) {
+            console.error('Invalid WS message', e);
+          }
+        });
+
+        socket.addEventListener('close', () => {
+          document.getElementById('last-updated').textContent = 'Live updates disconnected';
+          // try reconnect later
+          setTimeout(setupWebSocket, 3000);
+        });
+
+        socket.addEventListener('error', () => {
+          document.getElementById('last-updated').textContent = 'Live updates error';
+          socket.close();
+        });
+      } catch (e) {
+        console.warn('WebSocket not available, falling back to polling');
+      }
+    }
+
+    setupWebSocket();
+
+    // Polling fallback: refresh every 6s
+    setInterval(() => { if (document.visibilityState === 'visible') loadScores(); }, 6000);
+  </script>
+</body>
+</html>
