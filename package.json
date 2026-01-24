@@ -5,13 +5,16 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "migrate": "node migrate_scores.js"
+    "migrate": "node migrate_scores.js",
+    "migrate:firestore": "node migrate_to_firestore.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
     "ws": "^8.18.3",
-    "pg": "^8.11.0"
+    "pg": "^8.11.0",
+    "@aws-sdk/client-s3": "^3.520.0",
+    "firebase-admin": "^11.11.0"
   }
 }

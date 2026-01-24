@@ -4,6 +4,42 @@ const path = require('path');
 const http = require('http');
 const WebSocket = require('ws');
 const { Pool } = require('pg');
+// Optional S3 support (non-SQL durable storage)
+let S3Client, GetObjectCommand, PutObjectCommand;
+let s3Client = null;
+const S3_BUCKET = process.env.S3_BUCKET;
+if (S3_BUCKET) {
+  try {
+    ({ S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3'));
+    s3Client = new S3Client({ region: process.env.AWS_REGION });
+  } catch (e) {
+    console.warn('S3 SDK not installed or failed to load:', e && e.message);
+    s3Client = null;
+  }
+}
+
+// Firebase Admin (Firestore) support (optional)
+let admin = null;
+let firestore = null;
+const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    admin = require('firebase-admin');
+    let creds;
+    try {
+      creds = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
+    } catch (e) {
+      // maybe base64 encoded
+      creds = JSON.parse(Buffer.from(FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8'));
+    }
+    admin.initializeApp({ credential: admin.credential.cert(creds) });
+    firestore = admin.firestore();
+    console.log('Initialized Firebase Admin for Firestore');
+  } catch (e) {
+    console.error('Failed to initialize Firebase Admin:', e && e.message);
+    firestore = null;
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,10 +50,12 @@ const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env
 
 app.use(express.json());
 // Admin basic auth middleware (optional). If ADMIN_USER and ADMIN_PASS are set in env,
-// protected routes will require HTTP Basic auth.
+// protect only faculty/admin routes. Public endpoints like POST /api/scores remain open so
+// anyone can submit quiz results.
 function adminAuthMiddleware(req, res, next) {
-  const protectedPaths = ['/scores.html', '/api/scores', '/api/clear-scores', '/api/export-scores'];
-  const needsAuth = protectedPaths.some(p => req.path === p || req.path.startsWith(p + '/')) || protectedPaths.includes(req.path);
+  // Only these paths require admin credentials
+  const protectedPaths = ['/scores.html', '/api/clear-scores', '/api/export-scores'];
+  const needsAuth = protectedPaths.some(p => req.path === p || req.path.startsWith(p + '/'));
   const ADMIN_USER = process.env.ADMIN_USER;
   const ADMIN_PASS = process.env.ADMIN_PASS;
   if (!ADMIN_USER || !ADMIN_PASS || !needsAuth) return next();
@@ -85,10 +123,44 @@ async function ensureTable() {
 }
 
 async function readScores() {
-  // Try DB first
+  // If Postgres configured, read from DB
   if (pool) {
     const res = await pool.query('SELECT * FROM scores ORDER BY receivedAt ASC');
     return res.rows;
+  }
+
+  // If Firestore configured, read from Firestore collection 'scores'
+  if (firestore) {
+    try {
+      const snapshot = await firestore.collection('scores').orderBy('receivedAt', 'asc').get();
+      const docs = [];
+      snapshot.forEach(doc => {
+        docs.push(doc.data());
+      });
+      return docs;
+    } catch (e) {
+      console.error('Failed to read scores from Firestore:', e);
+      return [];
+    }
+  }
+
+  // If S3 configured, read from S3
+  if (s3Client) {
+    try {
+      const get = await s3Client.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json' }));
+      const streamToString = (stream) => new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        stream.on('error', (err) => reject(err));
+        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      });
+      const body = await streamToString(get.Body);
+      return JSON.parse(body || '[]');
+    } catch (e) {
+      if (e.name === 'NoSuchKey' || e.$metadata && e.$metadata.httpStatusCode === 404) return [];
+      console.error('Failed to read scores from S3:', e);
+      return [];
+    }
   }
 
   // Fallback to file
@@ -111,6 +183,45 @@ async function insertScore(score) {
     return true;
   }
 
+  // If Firestore configured, write to Firestore
+  if (firestore) {
+    try {
+      const id = score.id ? String(score.id) : String(Date.now());
+      await firestore.collection('scores').doc(id).set(score);
+      return true;
+    } catch (e) {
+      console.error('Failed to write score to Firestore:', e);
+      return false;
+    }
+  }
+
+  // If S3 is configured, write to S3
+  if (s3Client) {
+    try {
+      // read existing
+      let arr = [];
+      try {
+        const get = await s3Client.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json' }));
+        const streamToString = (stream) => new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          stream.on('error', (err) => reject(err));
+          stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        });
+        const body = await streamToString(get.Body);
+        arr = JSON.parse(body || '[]');
+      } catch (e) {
+        arr = [];
+      }
+      arr.push(score);
+      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json', Body: JSON.stringify(arr, null, 2), ContentType: 'application/json' }));
+      return true;
+    } catch (e) {
+      console.error('Failed to write scores to S3:', e);
+      return false;
+    }
+  }
+
   // File fallback
   try {
     let arr = [];
@@ -131,21 +242,25 @@ ensureTable().catch(err => { if (err) console.error('ensureTable error', err); }
 
 app.get('/api/scores', async (req, res) => {
   try {
-    const scores = await readScores();
-    res.json(scores);
+    const rows = await readScores();
+    // Normalize to array of objects
+    const arr = Array.isArray(rows) ? rows : [];
+    const headers = ['id','name','email','score','answeredQuestions','totalQuestions','timeTaken','reason','receivedAt','date'];
+    const csv = [headers.join(',')].concat(arr.map(r => {
+      return headers.map(h => {
+        const v = r[h] == null ? '' : String(r[h]).replace(/"/g, '""');
+        return '"' + v + '"';
+      }).join(',');
+    })).join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="scores.csv"');
+    res.send(csv);
   } catch (e) {
     console.error('GET /api/scores error', e);
-    res.json([]);
+    res.status(500).json({ error: 'Failed to read scores' });
   }
 });
-
-// Check if user has already completed the quiz (since last server restart)
-app.get('/api/quiz-status/:userName', (req, res) => {
-  const userName = req.params.userName;
-  const hasCompleted = completedUsers.has(userName);
-  res.json({ completed: hasCompleted });
-});
-
 app.post('/api/scores', async (req, res) => {
   const payload = req.body;
   if (!payload || !payload.name) return res.status(400).json({ error: 'Invalid payload' });
@@ -173,8 +288,17 @@ app.post('/api/clear-scores', async (req, res) => {
     if (pool) {
       // Remove all rows from scores table
       await pool.query('DELETE FROM scores');
+    } else if (firestore) {
+      // Delete all docs in Firestore collection 'scores'
+      const snapshot = await firestore.collection('scores').get();
+      const batch = firestore.batch();
+      snapshot.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    } else if (s3Client) {
+      // Overwrite file with empty array in S3
+      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json', Body: JSON.stringify([], null, 2), ContentType: 'application/json' }));
     } else {
-      // Overwrite file with empty array
+      // Overwrite local file
       fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2), 'utf8');
     }
 

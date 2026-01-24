@@ -110,6 +110,48 @@ Good for the frontend, but requires converting server to Netlify Functions.
 
 Now share the `index.html` link with students and the `scores.html` link (plus credentials) with your faculty.
 
+## Use S3 for durable storage (no SQL)
+
+If you prefer not to use Postgres or any SQL database, you can use AWS S3 as durable storage for `scores.json`. When S3 is configured, the server will read/write `scores.json` in the S3 bucket so data persists across deploys and restarts.
+
+Environment variables to set on Render (or your host):
+
+- `S3_BUCKET` — name of the S3 bucket (required when using S3)
+- `AWS_REGION` — AWS region of the bucket (e.g., `us-east-1`)
+- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` — IAM credentials with S3 Put/Get permissions (keep secret)
+
+How it works:
+- The server will use S3 to store a single `scores.json` object containing an array of score objects.
+- When a quiz is submitted, the server reads `scores.json` from S3 (if present), appends the new score, and writes it back.
+- This provides durable storage without a SQL database.
+
+Security note: create an IAM user with limited S3 permissions (GetObject, PutObject for that specific bucket) and do not expose credentials publicly.
+
+If you want, I can add an alternate implementation that uses Google Firestore or Firebase (also non-SQL) instead of S3 — tell me which you prefer.
+
+## Use Firebase Firestore (free-friendly, recommended)
+
+Firebase Firestore provides an always-free tier suitable for classroom use with modest traffic. The server can write scores to Firestore so you don't need Postgres or S3.
+
+Steps to enable Firestore persistence:
+
+1. Create a Firebase project at https://console.firebase.google.com
+2. In the project, go to Settings → Service accounts → Create new private key. Download the JSON file.
+3. On Render (or your host) set an environment variable `FIREBASE_SERVICE_ACCOUNT` to the **contents** of that JSON file. If your host UI doesn't like newlines, base64-encode the JSON and set `FIREBASE_SERVICE_ACCOUNT` to the base64 string (the server will try JSON first, then base64 decode).
+    - Example (local testing):
+       ```powershell
+       $json = Get-Content serviceAccount.json -Raw
+       $env:FIREBASE_SERVICE_ACCOUNT = $json
+       npm start
+       ```
+4. Deploy your Render service and set the same `FIREBASE_SERVICE_ACCOUNT` env var in the service's Environment settings.
+
+Behavior after enabling Firestore:
+- The server uses Firestore collection `scores` to store each submitted score as a document. Documents are keyed by `id` (timestamp or provided id).
+- `scores.html` and `/api/export-scores` will read from Firestore automatically.
+
+Security note: keep your service account JSON private and never commit it to source control. Use Render's Environment variables panel to store it securely.
+
 ## If you host frontend and backend separately
 
 If you deploy the frontend (static `index.html` / `scores.html`) to a different host than the server (for example frontend on Vercel and backend on Render), edit both `index.html` and `scores.html` and set the `meta[name="server-base"]` value to your backend URL (no trailing slash), for example:
