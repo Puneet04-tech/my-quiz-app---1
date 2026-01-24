@@ -4,7 +4,7 @@
   "description": "Local quiz app with persistent score storage",
   "main": "server.js",
   "scripts": {
-    "start": "node server_clean.js",
+    "start": "node server.js",
     "migrate": "node migrate_scores.js"
   },
   "author": "",

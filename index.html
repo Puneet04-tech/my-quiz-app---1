@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Excel Quiz (Round 2)</title>
+    <!-- Set this meta to your deployed server URL (no trailing slash). Leave empty to use relative paths -->
+    <meta name="server-base" content="">
     <!-- <link rel="stylesheet" href="style.css"> -->
      <style>
         body {
@@ -690,7 +692,7 @@ button:disabled {
             <div id="time-taken" style="margin-top:8px;"></div>
             <div id="results-extra" style="margin-top:16px;"></div>
             <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
-                <button id="view-scores-btn" onclick="window.location='scores.html'" style="background:linear-gradient(135deg,#213341,#667eea); padding:10px 14px; border-radius:10px; color:white; border:none;">View Saved Scores</button>
+                <!-- View Saved Scores removed for deployment public access -->
                 <button id="review-answers-btn" onclick="reviewAnswers()" style="background:linear-gradient(135deg,#4caf50,#45a049); padding:10px 14px; border-radius:10px; color:white; border:none;">Review Answers</button>
             </div>
             <div id="incident-list-placeholder"></div>
@@ -1263,12 +1265,22 @@ button:disabled {
         }
     }
 
+    // Build API URL using optional meta[name="server-base"] (set to deployed server URL)
+    function apiUrl(path) {
+        try {
+            const meta = document.querySelector('meta[name="server-base"]');
+            const base = meta && meta.content ? meta.content.trim() : '';
+            if (!base) return path;
+            return base.replace(/\/+$/,'') + path;
+        } catch (e) { return path; }
+    }
+
     async function checkQuizCompletion(userName) {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
             
-            const res = await fetch(`/api/quiz-status/${encodeURIComponent(userName)}`, {
+            const res = await fetch(apiUrl(`/api/quiz-status/${encodeURIComponent(userName)}`), {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -1308,7 +1320,7 @@ button:disabled {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
             
-            const res = await fetch(`/api/quiz-status/${encodeURIComponent(name)}`, {
+            const res = await fetch(apiUrl(`/api/quiz-status/${encodeURIComponent(name)}`), {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -1333,7 +1345,7 @@ button:disabled {
     async function sendScoreToServer(payload) {
         // Try to POST to local server; if it fails, fallback to saving locally
         try {
-            const res = await fetch('/api/scores', {
+            const res = await fetch(apiUrl('/api/scores'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

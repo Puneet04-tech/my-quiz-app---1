@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Saved Scores</title>
+  <meta name="server-base" content="">
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -17,12 +18,22 @@
   <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
     <button id="refresh-btn">Refresh</button>
     <button id="clear-local-btn" title="Remove locally saved scores">Clear Local Scores</button>
+    <button id="clear-all-btn" title="Remove all persisted scores from server and this browser">Clear All Scores</button>
+    <button id="download-csv" title="Download CSV of scores">Download CSV</button>
     <span id="last-updated" style="margin-left:12px;color:#666;"></span>
   </div>
   <div id="status" style="margin-top:12px; color:#555;">Loading...</div>
   <div id="scores-list" style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
 
   <script>
+    function apiUrl(path) {
+      try {
+        const meta = document.querySelector('meta[name="server-base"]');
+        const base = meta && meta.content ? meta.content.trim() : '';
+        if (!base) return path;
+        return base.replace(/\/+$/,'') + path;
+      } catch (e) { return path; }
+    }
     async function loadScores() {
       const container = document.getElementById('scores-list');
       container.innerHTML = '';
@@ -30,7 +41,7 @@
       // Try to fetch from server first
       let serverScores = [];
       try {
-        const res = await fetch('/api/scores');
+        const res = await fetch(apiUrl('/api/scores'));
         if (res.ok) {
           serverScores = await res.json();
         }
@@ -117,11 +128,37 @@
       loadScores();
     });
 
+    document.getElementById('clear-all-btn').addEventListener('click', async function(){
+      if (!confirm('Clear ALL scores from the server and this browser? This cannot be undone.')) return;
+      try {
+        const res = await fetch(apiUrl('/api/clear-scores'), { method: 'POST' });
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        // Remove local scores as well
+        localStorage.removeItem('localScores');
+        document.getElementById('status').textContent = 'All scores cleared.';
+        loadScores();
+      } catch (e) {
+        alert('Failed to clear server scores: ' + (e.message || e));
+      }
+    });
+
+    document.getElementById('download-csv').addEventListener('click', function(){
+      window.open(apiUrl('/api/export-scores'), '_blank');
+    });
+
     // Try WebSocket live updates (preferred) — fall back to polling
     function setupWebSocket() {
       try {
         const scheme = (location.protocol === 'https:') ? 'wss' : 'ws';
-        const wsUrl = `${scheme}://${location.host}`;
+        let wsUrl = `${scheme}://${location.host}`;
+        try {
+          const meta = document.querySelector('meta[name="server-base"]');
+          const base = meta && meta.content ? meta.content.trim() : '';
+          if (base) {
+            const url = new URL(base);
+            wsUrl = (url.protocol === 'https:' ? 'wss' : 'ws') + '://' + url.host;
+          }
+        } catch (e) {}
         const socket = new WebSocket(wsUrl);
 
         socket.addEventListener('open', () => {
@@ -132,6 +169,13 @@
         socket.addEventListener('message', evt => {
           try {
             const msg = JSON.parse(evt.data);
+            if (msg && msg.type === 'clear-scores') {
+              // server cleared scores — refresh UI and local storage
+              localStorage.removeItem('localScores');
+              loadScores();
+              document.getElementById('status').textContent = 'All scores cleared by server.';
+              return;
+            }
             if (msg && msg.type === 'new-score' && msg.payload) {
               // prepend the new score to the table
               const tbody = document.querySelector('#scores-table tbody');

@@ -88,6 +88,38 @@ Good for the frontend, but requires converting server to Netlify Functions.
 - Webcam proctoring requires **HTTPS** (all hosting platforms provide this automatically)
 - If using a custom domain, configure DNS to point to your hosting platform
 
+## Sharing with your classroom and faculty
+
+- To let students take the quiz:
+   1. Deploy the app to a public host (Render, Railway or similar) following the steps above.
+   2. Share the public URL (for example `https://your-app-name.onrender.com/index.html`) with students.
+
+- To let faculty view scores securely:
+   1. Set admin credentials as environment variables on your host: `ADMIN_USER` and `ADMIN_PASS`.
+       - On Render or Railway you can set these in the service's Environment settings.
+   2. The `scores.html` page and score-related API endpoints will be protected by HTTP Basic Auth when these variables are set.
+       - Faculty can open `https://your-app-name.onrender.com/scores.html` and will be prompted for the username/password.
+   3. Alternatively, faculty can download a CSV of scores at `https://your-app-name.onrender.com/api/export-scores` (also protected when admin credentials are set).
+
+- If you prefer not to require credentials, leave `ADMIN_USER`/`ADMIN_PASS` unset — the pages and APIs will remain public.
+
+## Example: setting credentials on Render (web UI)
+1. Go to your service on Render → Settings → Environment
+2. Add keys: `ADMIN_USER` and `ADMIN_PASS` with desired values
+3. Redeploy the service (Render redeploys automatically when environment changes)
+
+Now share the `index.html` link with students and the `scores.html` link (plus credentials) with your faculty.
+
+## If you host frontend and backend separately
+
+If you deploy the frontend (static `index.html` / `scores.html`) to a different host than the server (for example frontend on Vercel and backend on Render), edit both `index.html` and `scores.html` and set the `meta[name="server-base"]` value to your backend URL (no trailing slash), for example:
+
+```html
+<meta name="server-base" content="https://your-backend.example.com">
+```
+
+This makes the client call the correct API endpoints (`/api/scores`, `/api/clear-scores`, `/api/export-scores`) on your deployed server.
+
 ## Quick test steps for proctoring and tuning
 1. Open Developer Tools (F12) and the Console.
 2. On the start screen: enter your name, check `Enable webcam proctoring`, enable `Overlay`, set `Threshold` low (e.g., `0.05`) and `Frames` to `1` or `2` for testing.
