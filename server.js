@@ -49,6 +49,7 @@ const DATA_FILE = path.join(__dirname, 'scores.json');
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 // Admin basic auth middleware (optional). If ADMIN_USER and ADMIN_PASS are set in env,
 // protect only faculty/admin routes. Public endpoints like POST /api/scores remain open so
 // anyone can submit quiz results.
@@ -60,17 +61,45 @@ function adminAuthMiddleware(req, res, next) {
   const ADMIN_PASS = process.env.ADMIN_PASS;
   if (!ADMIN_USER || !ADMIN_PASS || !needsAuth) return next();
 
+  // First, allow a simple cookie-based session for web login (admin_auth stores base64(user:pass))
+  try {
+    const cookieHeader = req.headers['cookie'] || '';
+    const cookies = cookieHeader.split(';').map(c => c.trim());
+    const adminCookie = cookies.find(c => c.startsWith('admin_auth='));
+    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString('base64');
+    if (adminCookie) {
+      const val = adminCookie.split('=')[1] || '';
+      if (val === expected) return next();
+    }
+  } catch (e) {}
+
+  // Support Basic Auth header for API clients
   const auth = req.headers['authorization'];
-  if (!auth || !auth.startsWith('Basic ')) {
+  if (auth && auth.startsWith('Basic ')) {
+    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+    const [user, pass] = creds.split(':');
+    if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
+    // Invalid basic auth provided
+    res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
+    return res.status(401).send('Invalid credentials');
+  }
+
+  // If client explicitly requests basic challenge (e.g. /scores.html?basic=1), send WWW-Authenticate 401
+  if (req.query && String(req.query.basic) === '1') {
     res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
     return res.status(401).send('Authentication required');
   }
-  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-  const [user, pass] = creds.split(':');
-  if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
 
+  // For normal browser navigation, redirect to the friendly login page
+  const accept = req.headers['accept'] || '';
+  const ua = req.headers['user-agent'] || '';
+  if (accept.includes('text/html') || ua) {
+    return res.redirect('/admin-login');
+  }
+
+  // Fallback: challenge with Basic
   res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
-  return res.status(401).send('Invalid credentials');
+  return res.status(401).send('Authentication required');
 }
 
 // Attach admin auth before static so scores.html is protected
@@ -190,7 +219,14 @@ async function insertScore(score) {
       await firestore.collection('scores').doc(id).set(score);
       return true;
     } catch (e) {
-      console.error('Failed to write score to Firestore:', e);
+      // More helpful diagnostics for common issues (NOT_FOUND often means project/db not found or insufficient permissions)
+      try {
+        const code = e && e.code ? e.code : undefined;
+        console.error('Failed to write score to Firestore:', code ? `${code} ${e.message || ''}` : e);
+        if (code === 5) {
+          console.error('Firestore NOT_FOUND (code=5): check that the service account project_id matches an existing GCP project with Firestore enabled, and that the account has write permissions.');
+        }
+      } catch (ee) { console.error('Error while logging Firestore error', ee); }
       return false;
     }
   }
@@ -419,11 +455,52 @@ app.get('/api/storage-info', async (req, res) => {
       }
     }
 
+    // If Firestore is configured, attempt to show parsed project id from service account for diagnostics
+    if (firestore) {
+      try {
+        if (FIREBASE_SERVICE_ACCOUNT) {
+          let parsed;
+          try { parsed = JSON.parse(FIREBASE_SERVICE_ACCOUNT); } catch (pe) { parsed = JSON.parse(Buffer.from(FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8')); }
+          info.details.firebase = { project_id: parsed && parsed.project_id ? parsed.project_id : null };
+          if (!parsed || !parsed.project_id) info.details.firebase_note = 'Service account JSON does not contain project_id; Firestore writes may fail.';
+        } else {
+          info.details.firebase = { note: 'FIREBASE_SERVICE_ACCOUNT not set in environment' };
+        }
+      } catch (e) {
+        info.details.firebase = { error: e && e.message ? e.message : String(e) };
+      }
+    }
+
     return res.json(info);
   } catch (e) {
     console.error('GET /api/storage-info error', e);
     return res.status(500).json({ error: 'Failed to check storage' });
   }
+});
+
+// Simple admin login page to allow entering ADMIN_USER/ADMIN_PASS when browser Basic prompt is not available
+app.get('/admin-login', (req, res) => {
+  const ADMIN_USER = process.env.ADMIN_USER;
+  const ADMIN_PASS = process.env.ADMIN_PASS;
+  if (!ADMIN_USER || !ADMIN_PASS) return res.status(404).send('Admin login not configured');
+  const err = req.query && req.query.error ? '<p style="color:red">Invalid credentials</p>' : '';
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Admin Login</title></head><body style="font-family:Arial;margin:24px;">${err}<h2>Admin Login</h2><form method="POST" action="/admin-login"><div><label>Username: <input name="user"></label></div><div><label>Password: <input name="pass" type="password"></label></div><div style="margin-top:12px;"><button type="submit">Login</button></div></form></body></html>`);
+});
+
+app.post('/admin-login', (req, res) => {
+  const ADMIN_USER = process.env.ADMIN_USER;
+  const ADMIN_PASS = process.env.ADMIN_PASS;
+  if (!ADMIN_USER || !ADMIN_PASS) return res.status(404).send('Admin login not configured');
+  const user = req.body && req.body.user ? String(req.body.user) : '';
+  const pass = req.body && req.body.pass ? String(req.body.pass) : '';
+  if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    const token = Buffer.from(`${user}:${pass}`).toString('base64');
+    // Set simple HttpOnly cookie for admin session for 24 hours
+    res.setHeader('Set-Cookie', `admin_auth=${token}; HttpOnly; Path=/; Max-Age=${24*60*60}`);
+    return res.redirect('/scores.html');
+  }
+  return res.redirect('/admin-login?error=1');
 });
 
 server.listen(PORT, () => {
