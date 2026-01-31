@@ -273,12 +273,65 @@ app.post('/api/scores', async (req, res) => {
 
   try {
     const ok = await insertScore(payload);
-    if (!ok) return res.status(500).json({ error: 'Failed to persist score' });
+    if (!ok) {
+      console.error('insertScore returned false - possible write failure');
+      return res.status(500).json({ error: 'Failed to persist score' });
+    }
     try { broadcastNewScore(payload); } catch (e) { console.error('broadcast error', e); }
     return res.json({ success: true });
   } catch (e) {
     console.error('POST /api/scores error', e);
-    return res.status(500).json({ error: 'Failed to persist score' });
+    return res.status(500).json({ error: 'Failed to persist score', details: e && e.message ? e.message : undefined });
+  }
+});
+
+// Check whether a named user has already completed the quiz. The client uses this to
+// prevent re-taking the quiz without resetting the server. This checks persistent
+// stores (Postgres/Firestore/S3/file) as well as the in-memory set.
+app.get('/api/quiz-status/:name', async (req, res) => {
+  const name = req.params.name;
+  if (!name) return res.status(400).json({ error: 'Missing name' });
+
+  try {
+    // First check in-memory set (fast path)
+    if (completedUsers.has(name)) return res.json({ completed: true });
+
+    // Check Postgres
+    if (pool) {
+      const r = await pool.query('SELECT 1 FROM scores WHERE name=$1 LIMIT 1', [name]);
+      return res.json({ completed: r.rowCount > 0 });
+    }
+
+    // Check Firestore
+    if (firestore) {
+      const snapshot = await firestore.collection('scores').where('name', '==', name).limit(1).get();
+      return res.json({ completed: !snapshot.empty });
+    }
+
+    // Check S3
+    if (s3Client) {
+      try {
+        const get = await s3Client.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json' }));
+        const streamToString = (stream) => new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          stream.on('error', (err) => reject(err));
+          stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        });
+        const body = await streamToString(get.Body);
+        const arr = JSON.parse(body || '[]');
+        return res.json({ completed: arr.some(s => String(s.name) === String(name)) });
+      } catch (e) {
+        // Fall through to file fallback
+      }
+    }
+
+    // File fallback
+    const arr = await readScores();
+    return res.json({ completed: arr.some(s => String(s.name) === String(name)) });
+  } catch (e) {
+    console.error('GET /api/quiz-status error', e);
+    return res.status(500).json({ error: 'Failed to check status' });
   }
 });
 
@@ -342,6 +395,34 @@ app.get('/api/export-scores', async (req, res) => {
   } catch (e) {
     console.error('GET /api/export-scores error', e);
     res.status(500).json({ error: 'Failed to export scores' });
+  }
+});
+
+// Lightweight endpoint to help diagnose storage on deployed hosts.
+// Returns which backend is in use and whether local file storage is writable.
+app.get('/api/storage-info', async (req, res) => {
+  try {
+    const info = { mode: null, writable: null, details: {} };
+    if (pool) info.mode = 'postgres';
+    else if (firestore) info.mode = 'firestore';
+    else if (s3Client) info.mode = 's3';
+    else info.mode = 'file';
+
+    if (info.mode === 'file') {
+      try {
+        // Check write permission for directory
+        fs.accessSync(path.dirname(DATA_FILE), fs.constants.W_OK);
+        info.writable = true;
+      } catch (e) {
+        info.writable = false;
+        info.details.error = e && e.message ? e.message : String(e);
+      }
+    }
+
+    return res.json(info);
+  } catch (e) {
+    console.error('GET /api/storage-info error', e);
+    return res.status(500).json({ error: 'Failed to check storage' });
   }
 });
 
