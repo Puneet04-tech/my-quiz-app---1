@@ -73,10 +73,42 @@ After deployment:
 - Ensure health check is passing
 - Verify environment variables are correctly set
 
+### Firestore NOT_FOUND Error (Code 5)
+This is the most common issue with Firebase deployment:
+
+**Symptoms:**
+- Server logs show "Failed to write score to Firestore: 5 NOT_FOUND"
+- App still works but uses file storage fallback
+
+**Solutions:**
+1. **Check Service Account JSON:**
+   - Ensure `FIREBASE_SERVICE_ACCOUNT` is valid JSON
+   - Verify `project_id` matches your actual GCP project
+   - Make sure there are no extra quotes or formatting issues
+
+2. **Enable Firestore:**
+   - Go to Google Cloud Console
+   - Select your project
+   - Go to Firestore Database
+   - Click "Create database" if not enabled
+
+3. **Service Account Permissions:**
+   - Go to IAM & Admin → Service Accounts
+   - Ensure your service account has "Cloud Datastore User" role
+   - Or grant "Firestore Admin" for full access
+
+4. **Format Check:**
+   - If using multiline JSON in Render, ensure proper formatting
+   - Consider base64 encoding if Render has issues with multiline values
+
+**Quick Fix:**
+The app now automatically falls back to file storage when Firestore fails, so your app will continue working even with Firebase configuration issues.
+
 ### Data not persisting
 - Ensure one persistence option is configured (Firebase/S3/PostgreSQL)
 - Check service account permissions
 - Verify environment variables are correctly formatted
+- Check Render logs for specific error messages
 
 ## Health Check
 

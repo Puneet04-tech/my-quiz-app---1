@@ -170,7 +170,18 @@ async function readScores() {
       return docs;
     } catch (e) {
       console.error('Failed to read scores from Firestore:', e);
-      return [];
+      // Check for specific error codes and provide helpful messages
+      try {
+        const code = e && e.code ? e.code : undefined;
+        if (code === 5) {
+          console.error('Firestore NOT_FOUND (code=5): Falling back to file storage');
+        } else if (code === 7) {
+          console.error('Firestore PERMISSION_DENIED (code=7): Falling back to file storage');
+        } else if (code === 16) {
+          console.error('Firestore UNAUTHENTICATED (code=16): Falling back to file storage');
+        }
+      } catch (ee) { console.error('Error while logging Firestore read error', ee); }
+      // Fall through to file storage
     }
   }
 
@@ -189,17 +200,17 @@ async function readScores() {
     } catch (e) {
       if (e.name === 'NoSuchKey' || e.$metadata && e.$metadata.httpStatusCode === 404) return [];
       console.error('Failed to read scores from S3:', e);
-      return [];
+      // Fall through to file storage
     }
   }
 
-  // Fallback to file
+  // Fallback to file (always available)
   try {
     if (!fs.existsSync(DATA_FILE)) return [];
     const data = fs.readFileSync(DATA_FILE, 'utf8');
     return JSON.parse(data || '[]');
   } catch (e) {
-    console.error('Failed to read scores:', e);
+    console.error('Failed to read scores from file:', e);
     return [];
   }
 }
@@ -225,10 +236,24 @@ async function insertScore(score) {
         const code = e && e.code ? e.code : undefined;
         console.error('Failed to write score to Firestore:', code ? `${code} ${e.message || ''}` : e);
         if (code === 5) {
-          console.error('Firestore NOT_FOUND (code=5): check that the service account project_id matches an existing GCP project with Firestore enabled, and that the account has write permissions.');
+          console.error('Firestore NOT_FOUND (code=5): This usually means:');
+          console.error('1. The service account project_id does not match an existing GCP project');
+          console.error('2. Firestore is not enabled in the GCP project');
+          console.error('3. The service account lacks write permissions');
+          console.error('4. The FIREBASE_SERVICE_ACCOUNT environment variable is malformed');
+          console.error('Falling back to local file storage for now.');
+        } else if (code === 7) {
+          console.error('Firestore PERMISSION_DENIED (code=7): Service account lacks permissions');
+          console.error('Falling back to local file storage for now.');
+        } else if (code === 16) {
+          console.error('Firestore UNAUTHENTICATED (code=16): Authentication failed');
+          console.error('Check that FIREBASE_SERVICE_ACCOUNT is valid and properly formatted');
+          console.error('Falling back to local file storage for now.');
         }
       } catch (ee) { console.error('Error while logging Firestore error', ee); }
-      return false;
+      
+      // Fall back to file storage when Firestore fails
+      console.warn('Falling back to file storage due to Firestore error');
     }
   }
 
@@ -255,11 +280,12 @@ async function insertScore(score) {
       return true;
     } catch (e) {
       console.error('Failed to write scores to S3:', e);
-      return false;
+      // Fall back to file storage
+      console.warn('Falling back to file storage due to S3 error');
     }
   }
 
-  // File fallback
+  // File fallback (always available)
   try {
     let arr = [];
     if (fs.existsSync(DATA_FILE)) {
@@ -267,6 +293,7 @@ async function insertScore(score) {
     }
     arr.push(score);
     fs.writeFileSync(DATA_FILE, JSON.stringify(arr, null, 2), 'utf8');
+    console.log('Score saved to local file (fallback storage)');
     return true;
   } catch (e) {
     console.error('Failed to write scores to file:', e);
