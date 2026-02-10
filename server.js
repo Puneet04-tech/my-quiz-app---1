@@ -18,10 +18,11 @@ if (S3_BUCKET) {
   }
 }
 
-// Firebase Admin (Firestore) support (optional)
+// Firebase Admin (Firestore) support (optional) - TEMPORARILY DISABLED DUE TO CONFIGURATION ISSUES
 let admin = null;
 let firestore = null;
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
+/*
 if (FIREBASE_SERVICE_ACCOUNT) {
   try {
     admin = require('firebase-admin');
@@ -40,6 +41,7 @@ if (FIREBASE_SERVICE_ACCOUNT) {
     firestore = null;
   }
 }
+*/
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -494,6 +496,31 @@ app.get('/api/storage-info', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint to help debug configuration issues
+app.get('/api/diagnose', (req, res) => {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      hasAdminUser: !!process.env.ADMIN_USER,
+      hasAdminPass: !!process.env.ADMIN_PASS,
+      hasFirebaseServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasS3Bucket: !!process.env.S3_BUCKET,
+      hasAwsRegion: !!process.env.AWS_REGION,
+    },
+    storage: {
+      mode: pool ? 'postgres' : firestore ? 'firestore' : s3Client ? 's3' : 'file',
+      firestoreEnabled: !!firestore,
+      s3Enabled: !!s3Client,
+      postgresEnabled: !!pool
+    },
+    message: 'Firebase temporarily disabled due to configuration issues. Using file storage.'
+  };
+  res.json(diagnostics);
+});
+
 // Health check endpoint for Render and other hosting platforms
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -610,15 +637,32 @@ app.get('/admin-login', (req, res) => {
 app.post('/admin-login', (req, res) => {
   const ADMIN_USER = process.env.ADMIN_USER;
   const ADMIN_PASS = process.env.ADMIN_PASS;
-  if (!ADMIN_USER || !ADMIN_PASS) return res.status(404).send('Admin login not configured');
+  
+  // Debug logging
+  console.log('Login attempt:', {
+    hasUser: !!ADMIN_USER,
+    hasPass: !!ADMIN_PASS,
+    submittedUser: req.body && req.body.user ? req.body.user : 'MISSING',
+    submittedPass: req.body && req.body.pass ? 'PRESENT' : 'MISSING'
+  });
+  
+  if (!ADMIN_USER || !ADMIN_PASS) {
+    console.log('Admin credentials not configured in environment');
+    return res.status(404).send('Admin login not configured');
+  }
+  
   const user = req.body && req.body.user ? String(req.body.user) : '';
   const pass = req.body && req.body.pass ? String(req.body.pass) : '';
+  
   if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    console.log('Login successful for user:', user);
     const token = Buffer.from(`${user}:${pass}`).toString('base64');
     // Set simple HttpOnly cookie for admin session for 24 hours
     res.setHeader('Set-Cookie', `admin_auth=${token}; HttpOnly; Path=/; Max-Age=${24*60*60}`);
     return res.redirect('/scores.html');
   }
+  
+  console.log('Login failed for user:', user);
   return res.redirect('/admin-login?error=1');
 });
 
