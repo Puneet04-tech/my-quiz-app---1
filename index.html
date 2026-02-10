@@ -1417,13 +1417,24 @@ button:disabled {
                 const sel = window.getSelection();
                 const text = sel ? sel.toString().trim() : '';
                 if (text.length > 0) {
-                    // Ensure selection occurred inside the quiz area
+                    // Check if selection is from within quiz questions
                     const node = sel.anchorNode || sel.focusNode;
                     if (node) {
-                        const el = (node.nodeType === 3) ? node.parentElement : node;
+                        // Traverse up to find if selection is within a question
+                        let currentElement = node;
+                        let isInsideQuiz = false;
+                        
+                        while (currentElement) {
+                            if (currentElement.id && currentElement.id.startsWith('question-')) {
+                                isInsideQuiz = true;
+                                break;
+                            }
+                            currentElement = currentElement.parentElement;
+                        }
+                        
                         const quizEl = document.getElementById('quiz');
-                        if (quizEl && quizEl.contains(el)) {
-                            finishQuiz(false, 'Text selection detected (possible cheating)');
+                        if (isInsideQuiz && quizEl && quizEl.contains(node)) {
+                            finishQuiz(false, 'Text selection detected from question (possible cheating)');
                         }
                     }
                 }
@@ -1500,17 +1511,16 @@ button:disabled {
         pasteHandler = function(e) {
             if (quizEnded) return;
             try {
-                const items = (e.clipboardData || window.clipboardData).items;
-                if (items) {
-                    for (let i = 0; i < items.length; i++) {
-                        const item = items[i];
-                        if (item.type && item.type.indexOf('image') !== -1) {
-                            recordIncident('paste_image', 'Image pasted into page (possible screenshot)');
-                            alert('Image paste detected. This action has been recorded.');
-                        }
-                    }
+                // Check if paste is into quiz questions
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement.id && activeElement.id.startsWith('question-')) {
+                    recordIncident('paste', 'Paste action detected in question (possible cheating)');
+                    finishQuiz(false, 'Paste action detected from question (possible cheating)');
+                    e.preventDefault();
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Ignore any errors
+            }
         };
 
         document.addEventListener('keydown', keydownHandler);
