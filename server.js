@@ -52,60 +52,9 @@ const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-// Admin basic auth middleware (optional). If ADMIN_USER and ADMIN_PASS are set in env,
-// protect only faculty/admin routes. Public endpoints like POST /api/scores remain open so
-// anyone can submit quiz results.
-function adminAuthMiddleware(req, res, next) {
-  // Only these paths require admin credentials
-  const protectedPaths = ['/scores.html', '/api/clear-scores', '/api/export-scores'];
-  const needsAuth = protectedPaths.some(p => req.path === p || req.path.startsWith(p + '/'));
-  const ADMIN_USER = process.env.ADMIN_USER;
-  const ADMIN_PASS = process.env.ADMIN_PASS;
-  if (!ADMIN_USER || !ADMIN_PASS || !needsAuth) return next();
+// No authentication required - scores are globally accessible
+// Removed adminAuthMiddleware for open access
 
-  // First, allow a simple cookie-based session for web login (admin_auth stores base64(user:pass))
-  try {
-    const cookieHeader = req.headers['cookie'] || '';
-    const cookies = cookieHeader.split(';').map(c => c.trim());
-    const adminCookie = cookies.find(c => c.startsWith('admin_auth='));
-    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString('base64');
-    if (adminCookie) {
-      const val = adminCookie.split('=')[1] || '';
-      if (val === expected) return next();
-    }
-  } catch (e) {}
-
-  // Support Basic Auth header for API clients
-  const auth = req.headers['authorization'];
-  if (auth && auth.startsWith('Basic ')) {
-    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-    const [user, pass] = creds.split(':');
-    if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
-    // Invalid basic auth provided
-    res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
-    return res.status(401).send('Invalid credentials');
-  }
-
-  // If client explicitly requests basic challenge (e.g. /scores.html?basic=1), send WWW-Authenticate 401
-  if (req.query && String(req.query.basic) === '1') {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
-    return res.status(401).send('Authentication required');
-  }
-
-  // For normal browser navigation, redirect to the friendly login page
-  const accept = req.headers['accept'] || '';
-  const ua = req.headers['user-agent'] || '';
-  if (accept.includes('text/html') || ua) {
-    return res.redirect('/admin-login');
-  }
-
-  // Fallback: challenge with Basic
-  res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
-  return res.status(401).send('Authentication required');
-}
-
-// Attach admin auth before static so scores.html is protected
-app.use(adminAuthMiddleware);
 app.use(express.static(path.join(__dirname)));
 
 // Allow CORS for API so scores.html opened from file:// can still fetch when needed
@@ -232,29 +181,7 @@ async function insertScore(score) {
       await firestore.collection('scores').doc(id).set(score);
       return true;
     } catch (e) {
-      // More helpful diagnostics for common issues (NOT_FOUND often means project/db not found or insufficient permissions)
-      try {
-        const code = e && e.code ? e.code : undefined;
-        console.error('Failed to write score to Firestore:', code ? `${code} ${e.message || ''}` : e);
-        if (code === 5) {
-          console.error('Firestore NOT_FOUND (code=5): This usually means:');
-          console.error('1. The service account project_id does not match an existing GCP project');
-          console.error('2. Firestore is not enabled in the GCP project');
-          console.error('3. The service account lacks write permissions');
-          console.error('4. The FIREBASE_SERVICE_ACCOUNT environment variable is malformed');
-          console.error('Falling back to local file storage for now.');
-        } else if (code === 7) {
-          console.error('Firestore PERMISSION_DENIED (code=7): Service account lacks permissions');
-          console.error('Falling back to local file storage for now.');
-        } else if (code === 16) {
-          console.error('Firestore UNAUTHENTICATED (code=16): Authentication failed');
-          console.error('Check that FIREBASE_SERVICE_ACCOUNT is valid and properly formatted');
-          console.error('Falling back to local file storage for now.');
-        }
-      } catch (ee) { console.error('Error while logging Firestore error', ee); }
-      
       // Fall back to file storage when Firestore fails
-      console.warn('Falling back to file storage due to Firestore error');
     }
   }
 
@@ -280,9 +207,7 @@ async function insertScore(score) {
       await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json', Body: JSON.stringify(arr, null, 2), ContentType: 'application/json' }));
       return true;
     } catch (e) {
-      console.error('Failed to write scores to S3:', e);
       // Fall back to file storage
-      console.warn('Falling back to file storage due to S3 error');
     }
   }
 
@@ -294,10 +219,8 @@ async function insertScore(score) {
     }
     arr.push(score);
     fs.writeFileSync(DATA_FILE, JSON.stringify(arr, null, 2), 'utf8');
-    console.log('Score saved to local file (fallback storage)');
     return true;
   } catch (e) {
-    console.error('Failed to write scores to file:', e);
     return false;
   }
 }
@@ -529,141 +452,6 @@ app.get('/health', (req, res) => {
     port: PORT,
     mode: pool ? 'postgres' : firestore ? 'firestore' : s3Client ? 's3' : 'file'
   });
-});
-
-// Simple admin login page to allow entering ADMIN_USER/ADMIN_PASS when browser Basic prompt is not available
-app.get('/admin-login', (req, res) => {
-  const ADMIN_USER = process.env.ADMIN_USER;
-  const ADMIN_PASS = process.env.ADMIN_PASS;
-  if (!ADMIN_USER || !ADMIN_PASS) return res.status(404).send('Admin login not configured');
-  const err = req.query && req.query.error ? '<p style="color:red; text-align:center; margin-bottom:20px;">Invalid credentials. Please try again.</p>' : '';
-  res.setHeader('Content-Type', 'text/html');
-  res.send(`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Admin Login - Quiz Scores</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      margin: 0;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .login-container {
-      background: white;
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      max-width: 400px;
-      width: 100%;
-    }
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 30px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      color: #555;
-      font-weight: bold;
-    }
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-    input[type="text"]:focus, input[type="password"]:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    button:hover {
-      transform: translateY(-2px);
-    }
-    .info {
-      text-align: center;
-      color: #666;
-      font-size: 14px;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="login-container">
-    <h2>🔐 Admin Login</h2>
-    ${err}
-    <form method="POST" action="/admin-login">
-      <div class="form-group">
-        <label for="user">Username:</label>
-        <input name="user" id="user" type="text" required>
-      </div>
-      <div class="form-group">
-        <label for="pass">Password:</label>
-        <input name="pass" id="pass" type="password" required>
-      </div>
-      <button type="submit">Login to View Scores</button>
-    </form>
-    <div class="info">
-      Enter admin credentials to access quiz scores
-    </div>
-  </div>
-</body>
-</html>`);
-});
-
-app.post('/admin-login', (req, res) => {
-  const ADMIN_USER = process.env.ADMIN_USER;
-  const ADMIN_PASS = process.env.ADMIN_PASS;
-  
-  // Debug logging
-  console.log('Login attempt:', {
-    hasUser: !!ADMIN_USER,
-    hasPass: !!ADMIN_PASS,
-    submittedUser: req.body && req.body.user ? req.body.user : 'MISSING',
-    submittedPass: req.body && req.body.pass ? 'PRESENT' : 'MISSING'
-  });
-  
-  if (!ADMIN_USER || !ADMIN_PASS) {
-    console.log('Admin credentials not configured in environment');
-    return res.status(404).send('Admin login not configured');
-  }
-  
-  const user = req.body && req.body.user ? String(req.body.user) : '';
-  const pass = req.body && req.body.pass ? String(req.body.pass) : '';
-  
-  if (user === ADMIN_USER && pass === ADMIN_PASS) {
-    console.log('Login successful for user:', user);
-    const token = Buffer.from(`${user}:${pass}`).toString('base64');
-    // Set simple HttpOnly cookie for admin session for 24 hours
-    res.setHeader('Set-Cookie', `admin_auth=${token}; HttpOnly; Path=/; Max-Age=${24*60*60}`);
-    return res.redirect('/scores.html');
-  }
-  
-  console.log('Login failed for user:', user);
-  return res.redirect('/admin-login?error=1');
 });
 
 server.listen(PORT, () => {

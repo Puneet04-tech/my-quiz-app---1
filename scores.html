@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>Saved Quiz Scores</h1>
-  <p>This page shows scores submitted by all users. Access requires admin credentials for privacy and security.</p>
+  <p>This page shows scores submitted by all users. No authentication required - scores are globally accessible.</p>
   <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
     <button id="refresh-btn">Refresh</button>
     <button id="clear-all-btn" title="Remove all scores from server">Clear All Scores</button>
@@ -37,28 +37,13 @@
       const container = document.getElementById('scores-list');
       container.innerHTML = '';
 
-      // Fetch from server only (global access)
+      // Fetch from server (global access - no auth required)
       let serverScores = [];
       let serverError = null;
       try {
         const res = await fetch(apiUrl('/api/scores'));
         if (res.ok) {
           serverScores = await res.json();
-        } else if (res.status === 401) {
-          serverError = 'Authentication required - please enter admin credentials';
-          // Show authentication instructions
-          document.getElementById('status').innerHTML = `
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-              <strong>Authentication Required</strong><br>
-              This page requires admin credentials. Please:
-              <ul style="margin: 8px 0 0 20px;">
-                <li>Enter your admin username and password when prompted by the browser</li>
-                <li>Or refresh the page and enter credentials in the Basic Auth dialog</li>
-                <li>If credentials aren't set up, contact your administrator</li>
-              </ul>
-            </div>
-          `;
-          return;
         } else {
           serverError = `Server returned ${res.status}`;
         }
@@ -68,10 +53,7 @@
 
       // Display server scores only (no local fallback for global access)
       if (serverError) {
-        if (serverError === 'Authentication required - please enter admin credentials') {
-          // Already handled above
-          return;
-        } else if (serverError === 'Server not available') {
+        if (serverError === 'Server not available') {
           document.getElementById('status').innerHTML = `
             <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
               <strong>Server Not Available</strong><br>
