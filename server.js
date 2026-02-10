@@ -90,11 +90,12 @@ function adminAuthMiddleware(req, res, next) {
     return res.status(401).send('Authentication required');
   }
 
-  // For normal browser navigation, redirect to the friendly login page
+  // For normal browser navigation, send Basic Auth challenge directly
   const accept = req.headers['accept'] || '';
   const ua = req.headers['user-agent'] || '';
   if (accept.includes('text/html') || ua) {
-    return res.redirect('/admin-login');
+    res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
+    return res.status(401).send('Authentication required');
   }
 
   // Fallback: challenge with Basic
@@ -476,6 +477,16 @@ app.get('/api/storage-info', async (req, res) => {
     console.error('GET /api/storage-info error', e);
     return res.status(500).json({ error: 'Failed to check storage' });
   }
+});
+
+// Health check endpoint for Render and other hosting platforms
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    mode: pool ? 'postgres' : firestore ? 'firestore' : s3Client ? 's3' : 'file'
+  });
 });
 
 // Simple admin login page to allow entering ADMIN_USER/ADMIN_PASS when browser Basic prompt is not available

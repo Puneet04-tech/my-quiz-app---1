@@ -1,0 +1,21 @@
+services:
+  # Quiz App Web Service
+  - type: web
+    name: my-quiz-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Set these in Render dashboard, not here:
+      # - key: ADMIN_USER
+      #   value: your_admin_username
+      # - key: ADMIN_PASS  
+      #   value: your_strong_password
+      # - key: FIREBASE_SERVICE_ACCOUNT
+      #   value: your_firebase_service_account_json

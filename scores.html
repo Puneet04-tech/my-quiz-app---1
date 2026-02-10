@@ -40,12 +40,31 @@
 
       // Try to fetch from server first
       let serverScores = [];
+      let serverError = null;
       try {
         const res = await fetch(apiUrl('/api/scores'));
         if (res.ok) {
           serverScores = await res.json();
+        } else if (res.status === 401) {
+          serverError = 'Authentication required - please enter admin credentials';
+          // Show authentication instructions
+          document.getElementById('status').innerHTML = `
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <strong>Authentication Required</strong><br>
+              This page requires admin credentials. Please:
+              <ul style="margin: 8px 0 0 20px;">
+                <li>Enter your admin username and password when prompted by the browser</li>
+                <li>Or refresh the page and enter credentials in the Basic Auth dialog</li>
+                <li>If credentials aren't set up, contact your administrator</li>
+              </ul>
+            </div>
+          `;
+          return;
+        } else {
+          serverError = `Server returned ${res.status}`;
         }
       } catch (e) {
+        serverError = 'Server not available';
         // server not available
       }
 
@@ -112,8 +131,34 @@
       });
 
       const status = document.getElementById('status');
-      if (serverScores.length === 0 && localScores.length > 0) {
-        status.textContent = 'Server not available — showing locally saved scores stored in this browser.';
+      if (serverError) {
+        if (serverError === 'Authentication required - please enter admin credentials') {
+          // Already handled above
+          return;
+        } else if (serverError === 'Server not available' && localScores.length > 0) {
+          status.textContent = 'Server not available — showing locally saved scores stored in this browser.';
+        } else if (serverError === 'Server not available') {
+          status.innerHTML = `
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <strong>Server Not Available</strong><br>
+              Unable to connect to the server. This could be due to:
+              <ul style="margin: 8px 0 0 20px;">
+                <li>Server is starting up or restarting</li>
+                <li>Network connectivity issues</li>
+                <li>Server maintenance</li>
+              </ul>
+              Please try refreshing the page in a few moments.
+            </div>
+          `;
+        } else {
+          status.innerHTML = `
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <strong>Server Error</strong><br>
+              ${serverError}<br>
+              Please try refreshing the page or contact support if the issue persists.
+            </div>
+          `;
+        }
       } else {
         status.style.display = 'none';
       }
