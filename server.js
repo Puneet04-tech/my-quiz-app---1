@@ -90,12 +90,11 @@ function adminAuthMiddleware(req, res, next) {
     return res.status(401).send('Authentication required');
   }
 
-  // For normal browser navigation, send Basic Auth challenge directly
+  // For normal browser navigation, redirect to the friendly login page
   const accept = req.headers['accept'] || '';
   const ua = req.headers['user-agent'] || '';
   if (accept.includes('text/html') || ua) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Scores"');
-    return res.status(401).send('Authentication required');
+    return res.redirect('/admin-login');
   }
 
   // Fallback: challenge with Basic
@@ -510,9 +509,102 @@ app.get('/admin-login', (req, res) => {
   const ADMIN_USER = process.env.ADMIN_USER;
   const ADMIN_PASS = process.env.ADMIN_PASS;
   if (!ADMIN_USER || !ADMIN_PASS) return res.status(404).send('Admin login not configured');
-  const err = req.query && req.query.error ? '<p style="color:red">Invalid credentials</p>' : '';
+  const err = req.query && req.query.error ? '<p style="color:red; text-align:center; margin-bottom:20px;">Invalid credentials. Please try again.</p>' : '';
   res.setHeader('Content-Type', 'text/html');
-  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Admin Login</title></head><body style="font-family:Arial;margin:24px;">${err}<h2>Admin Login</h2><form method="POST" action="/admin-login"><div><label>Username: <input name="user"></label></div><div><label>Password: <input name="pass" type="password"></label></div><div style="margin-top:12px;"><button type="submit">Login</button></div></form></body></html>`);
+  res.send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Admin Login - Quiz Scores</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .info {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>🔐 Admin Login</h2>
+    ${err}
+    <form method="POST" action="/admin-login">
+      <div class="form-group">
+        <label for="user">Username:</label>
+        <input name="user" id="user" type="text" required>
+      </div>
+      <div class="form-group">
+        <label for="pass">Password:</label>
+        <input name="pass" id="pass" type="password" required>
+      </div>
+      <button type="submit">Login to View Scores</button>
+    </form>
+    <div class="info">
+      Enter admin credentials to access quiz scores
+    </div>
+  </div>
+</body>
+</html>`);
 });
 
 app.post('/admin-login', (req, res) => {
