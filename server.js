@@ -18,11 +18,10 @@ if (S3_BUCKET) {
   }
 }
 
-// Firebase Admin (Firestore) support (optional) - TEMPORARILY DISABLED DUE TO CONFIGURATION ISSUES
+// Firebase Admin (Firestore) support (optional) - ENABLED FOR PERSISTENT STORAGE
 let admin = null;
 let firestore = null;
 const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
-/*
 if (FIREBASE_SERVICE_ACCOUNT) {
   try {
     admin = require('firebase-admin');
@@ -35,13 +34,16 @@ if (FIREBASE_SERVICE_ACCOUNT) {
     }
     admin.initializeApp({ credential: admin.credential.cert(creds) });
     firestore = admin.firestore();
-    console.log('Initialized Firebase Admin for Firestore');
+    console.log('✅ Firebase Admin initialized for persistent storage');
   } catch (e) {
-    console.error('Failed to initialize Firebase Admin:', e && e.message);
+    console.error('❌ Failed to initialize Firebase Admin:', e && e.message);
+    console.log('⚠️  Falling back to local file storage (NOT PERSISTENT on Render)');
     firestore = null;
   }
+} else {
+  console.log('⚠️  No FIREBASE_SERVICE_ACCOUNT configured - using local file storage (NOT PERSISTENT on Render)');
+  console.log('💡 To enable persistent storage, set FIREBASE_SERVICE_ACCOUNT in Render environment variables');
 }
-*/
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -167,6 +169,7 @@ async function readScores() {
 
 async function insertScore(score) {
   if (pool) {
+    console.log('💾 Saving score to PostgreSQL database');
     const sql = `INSERT INTO scores(id, name, email, score, answeredQuestions, totalQuestions, timeTaken, reason, receivedAt, date)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`;
     const vals = [score.id, score.name, score.email || null, score.score || null, score.answeredQuestions || null, score.totalQuestions || null, score.timeTaken || null, score.reason || null, score.receivedAt || null, score.date || null];
@@ -177,17 +180,21 @@ async function insertScore(score) {
   // If Firestore configured, write to Firestore
   if (firestore) {
     try {
+      console.log('🔥 Saving score to Firestore (persistent storage)');
       const id = score.id ? String(score.id) : String(Date.now());
       await firestore.collection('scores').doc(id).set(score);
+      console.log('✅ Score saved to Firestore successfully');
       return true;
     } catch (e) {
-      // Fall back to file storage when Firestore fails
+      console.error('❌ Failed to save to Firestore:', e);
+      console.log('⚠️  Falling back to local file storage (NOT PERSISTENT on Render)');
     }
   }
 
   // If S3 is configured, write to S3
   if (s3Client) {
     try {
+      console.log('☁️  Saving score to S3 (persistent storage)');
       // read existing
       let arr = [];
       try {
@@ -205,22 +212,27 @@ async function insertScore(score) {
       }
       arr.push(score);
       await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: 'scores.json', Body: JSON.stringify(arr, null, 2), ContentType: 'application/json' }));
+      console.log('✅ Score saved to S3 successfully');
       return true;
     } catch (e) {
-      // Fall back to file storage
+      console.error('❌ Failed to save to S3:', e);
+      console.log('⚠️  Falling back to local file storage (NOT PERSISTENT on Render)');
     }
   }
 
-  // File fallback (always available)
+  // File fallback (always available but NOT PERSISTENT on Render)
   try {
+    console.log('📁 Saving score to local file (NOT PERSISTENT on Render restarts)');
     let arr = [];
     if (fs.existsSync(DATA_FILE)) {
       arr = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8') || '[]');
     }
     arr.push(score);
     fs.writeFileSync(DATA_FILE, JSON.stringify(arr, null, 2), 'utf8');
+    console.log('⚠️  Score saved to local file - will be lost if server restarts on Render');
     return true;
   } catch (e) {
+    console.error('❌ Failed to save scores to file:', e);
     return false;
   }
 }
@@ -437,10 +449,31 @@ app.get('/api/diagnose', (req, res) => {
       mode: pool ? 'postgres' : firestore ? 'firestore' : s3Client ? 's3' : 'file',
       firestoreEnabled: !!firestore,
       s3Enabled: !!s3Client,
-      postgresEnabled: !!pool
+      postgresEnabled: !!pool,
+      persistent: !!(pool || firestore || s3Client)
     },
-    message: 'Firebase temporarily disabled due to configuration issues. Using file storage.'
+    warnings: [],
+    recommendations: []
   };
+  
+  // Add warnings and recommendations
+  if (!firestore && !pool && !s3Client) {
+    diagnostics.warnings.push('⚠️  Using local file storage - scores will be lost on server restart');
+    diagnostics.recommendations.push('💡 Set FIREBASE_SERVICE_ACCOUNT for persistent storage');
+  }
+  
+  if (firestore) {
+    diagnostics.recommendations.push('✅ Firestore enabled - scores will persist across restarts');
+  }
+  
+  if (pool) {
+    diagnostics.recommendations.push('✅ PostgreSQL enabled - scores will persist across restarts');
+  }
+  
+  if (s3Client) {
+    diagnostics.recommendations.push('✅ S3 enabled - scores will persist across restarts');
+  }
+  
   res.json(diagnostics);
 });
 
