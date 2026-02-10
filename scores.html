@@ -14,11 +14,10 @@
 </head>
 <body>
   <h1>Saved Quiz Scores</h1>
-  <p>This page shows scores submitted by registered users. Data is persisted on the project filesystem by the local server.</p>
+  <p>This page shows scores submitted by all users. Access requires admin credentials for privacy and security.</p>
   <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
     <button id="refresh-btn">Refresh</button>
-    <button id="clear-local-btn" title="Remove locally saved scores">Clear Local Scores</button>
-    <button id="clear-all-btn" title="Remove all persisted scores from server and this browser">Clear All Scores</button>
+    <button id="clear-all-btn" title="Remove all scores from server">Clear All Scores</button>
     <button id="download-csv" title="Download CSV of scores">Download CSV</button>
     <span id="last-updated" style="margin-left:12px;color:#666;"></span>
   </div>
@@ -38,7 +37,7 @@
       const container = document.getElementById('scores-list');
       container.innerHTML = '';
 
-      // Try to fetch from server first
+      // Fetch from server only (global access)
       let serverScores = [];
       let serverError = null;
       try {
@@ -65,27 +64,45 @@
         }
       } catch (e) {
         serverError = 'Server not available';
-        // server not available
       }
 
-      // Always also include local fallback scores saved in browser
-      let localScores = [];
-      try {
-        const raw = localStorage.getItem('localScores');
-        if (raw) localScores = JSON.parse(raw);
-      } catch (e) {}
-
-      const combined = [];
-      if (Array.isArray(serverScores) && serverScores.length) combined.push(...serverScores);
-      if (Array.isArray(localScores) && localScores.length) combined.push(...localScores);
-
-      if (combined.length === 0) {
-        document.getElementById('status').textContent = 'No scores yet.';
+      // Display server scores only (no local fallback for global access)
+      if (serverError) {
+        if (serverError === 'Authentication required - please enter admin credentials') {
+          // Already handled above
+          return;
+        } else if (serverError === 'Server not available') {
+          document.getElementById('status').innerHTML = `
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <strong>Server Not Available</strong><br>
+              Unable to connect to the server. This could be due to:
+              <ul style="margin: 8px 0 0 20px;">
+                <li>Server is starting up or restarting</li>
+                <li>Network connectivity issues</li>
+                <li>Server maintenance</li>
+              </ul>
+              Please try refreshing the page in a few moments.
+            </div>
+          `;
+        } else {
+          document.getElementById('status').innerHTML = `
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <strong>Server Error</strong><br>
+              ${serverError}<br>
+              Please try refreshing the page or contact support if the issue persists.
+            </div>
+          `;
+        }
         return;
       }
 
-      // show newest first
-      combined.reverse().forEach(s => {
+      if (serverScores.length === 0) {
+        document.getElementById('status').textContent = 'No scores yet. Take the quiz to see results here!';
+        return;
+      }
+
+      // Display scores from server (global access)
+      serverScores.reverse().forEach(s => {
         const card = document.createElement('div');
         card.style.background = 'white';
         card.style.border = '1px solid #eee';
@@ -130,56 +147,19 @@
         container.appendChild(card);
       });
 
-      const status = document.getElementById('status');
-      if (serverError) {
-        if (serverError === 'Authentication required - please enter admin credentials') {
-          // Already handled above
-          return;
-        } else if (serverError === 'Server not available' && localScores.length > 0) {
-          status.textContent = 'Server not available — showing locally saved scores stored in this browser.';
-        } else if (serverError === 'Server not available') {
-          status.innerHTML = `
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-              <strong>Server Not Available</strong><br>
-              Unable to connect to the server. This could be due to:
-              <ul style="margin: 8px 0 0 20px;">
-                <li>Server is starting up or restarting</li>
-                <li>Network connectivity issues</li>
-                <li>Server maintenance</li>
-              </ul>
-              Please try refreshing the page in a few moments.
-            </div>
-          `;
-        } else {
-          status.innerHTML = `
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-              <strong>Server Error</strong><br>
-              ${serverError}<br>
-              Please try refreshing the page or contact support if the issue persists.
-            </div>
-          `;
-        }
-      } else {
-        status.style.display = 'none';
-      }
+      // Hide status when scores are loaded successfully
+      document.getElementById('status').style.display = 'none';
     }
     loadScores();
 
     // Wire refresh and clear buttons
     document.getElementById('refresh-btn').addEventListener('click', loadScores);
-    document.getElementById('clear-local-btn').addEventListener('click', function(){
-      if (!confirm('Clear all locally saved scores in this browser?')) return;
-      localStorage.removeItem('localScores');
-      loadScores();
-    });
 
     document.getElementById('clear-all-btn').addEventListener('click', async function(){
-      if (!confirm('Clear ALL scores from the server and this browser? This cannot be undone.')) return;
+      if (!confirm('Clear ALL scores from the server? This cannot be undone.')) return;
       try {
         const res = await fetch(apiUrl('/api/clear-scores'), { method: 'POST' });
         if (!res.ok) throw new Error('Server returned ' + res.status);
-        // Remove local scores as well
-        localStorage.removeItem('localScores');
         document.getElementById('status').textContent = 'All scores cleared.';
         loadScores();
       } catch (e) {
@@ -215,8 +195,7 @@
           try {
             const msg = JSON.parse(evt.data);
             if (msg && msg.type === 'clear-scores') {
-              // server cleared scores — refresh UI and local storage
-              localStorage.removeItem('localScores');
+              // server cleared scores — refresh UI
               loadScores();
               document.getElementById('status').textContent = 'All scores cleared by server.';
               return;

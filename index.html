@@ -1343,7 +1343,7 @@ button:disabled {
     }
 
     async function sendScoreToServer(payload) {
-        // Try to POST to local server; if it fails, fallback to saving locally
+        // Submit to server for global access
         try {
             const res = await fetch(apiUrl('/api/scores'), {
                 method: 'POST',
@@ -1359,23 +1359,17 @@ button:disabled {
             document.getElementById('quiz-results').appendChild(div);
             return;
         } catch (e) {
-            // fallback: save to localStorage
-            try {
-                const key = 'localScores';
-                const existingRaw = localStorage.getItem(key);
-                const arr = existingRaw ? JSON.parse(existingRaw) : [];
-                arr.push(payload);
-                localStorage.setItem(key, JSON.stringify(arr));
-                const div = document.createElement('div');
-                div.style.marginTop = '12px';
-                div.style.color = '#ff9800';
-                div.textContent = 'Server not available — score saved locally in this browser.';
-                document.getElementById('quiz-results').appendChild(div);
-            } catch (ee) {
-                // ignore
-            }
+            // Show error if server is unavailable
+            const div = document.createElement('div');
+            div.style.marginTop = '12px';
+            div.style.color = '#dc3545';
+            div.textContent = 'Failed to submit score to server. Please check your connection and try again.';
+            document.getElementById('quiz-results').appendChild(div);
+            console.error('Score submission failed:', e);
         }
     }
+
+    // Other functions...
 
     function startQuiz() {
         document.getElementById('start-screen').style.display = 'none';

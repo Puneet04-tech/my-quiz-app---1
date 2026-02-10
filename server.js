@@ -307,19 +307,8 @@ ensureTable().catch(err => { if (err) console.error('ensureTable error', err); }
 app.get('/api/scores', async (req, res) => {
   try {
     const rows = await readScores();
-    // Normalize to array of objects
-    const arr = Array.isArray(rows) ? rows : [];
-    const headers = ['id','name','email','score','answeredQuestions','totalQuestions','timeTaken','reason','receivedAt','date'];
-    const csv = [headers.join(',')].concat(arr.map(r => {
-      return headers.map(h => {
-        const v = r[h] == null ? '' : String(r[h]).replace(/"/g, '""');
-        return '"' + v + '"';
-      }).join(',');
-    })).join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="scores.csv"');
-    res.send(csv);
+    // Return JSON for frontend consumption
+    res.json(rows);
   } catch (e) {
     console.error('GET /api/scores error', e);
     res.status(500).json({ error: 'Failed to read scores' });
