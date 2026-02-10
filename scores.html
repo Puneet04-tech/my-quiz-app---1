@@ -2,27 +2,419 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Saved Scores</title>
+  <title>Quiz Scores Dashboard</title>
   <meta name="server-base" content="">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    th { background: #f4f4f4; }
-    .center { text-align: center; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      animation: backgroundShift 20s ease-in-out infinite;
+    }
+    
+    @keyframes backgroundShift {
+      0%, 100% { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      50% { 
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    h1 {
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, #1a202c, #2c3e50, #34495e, #2c3e50, #2a323a, #ffffff);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: inline-block;
+    }
+    
+    .subtitle {
+      color: rgba(255,255,255,0.9);
+      font-size: 1.1rem;
+      margin-top: 10px;
+    }
+    
+    .controls {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeIn 1s ease-out 0.3s;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      color: white;
+      box-shadow: 0 4px 15px rgba(220,53,69,0.3);
+    }
+    
+    .btn-info {
+      background: linear-gradient(135deg, #17a2b8, #138496);
+      color: white;
+      box-shadow: 0 4px 15px rgba(23,162,184,0.3);
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    
+    .status {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      text-align: center;
+      animation: fadeIn 1s ease-out 0.5s;
+    }
+    
+    .status-message {
+      padding: 15px;
+      border-radius: 10px;
+      margin: 0;
+    }
+    
+    .status-success {
+      background: linear-gradient(135deg, #d4edda, #c3e6cb);
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+    
+    .status-error {
+      background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+    }
+    
+    .status-info {
+      background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+    
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      animation: fadeInUp 0.8s ease-out 0.7s;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .score-card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .score-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .score-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .score-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin: 0;
+    }
+    
+    .score-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #28a745;
+      background: linear-gradient(45deg, #28a745, #20c997);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+    
+    .score-meta {
+      color: #6c757d;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    .score-meta strong {
+      color: #495057;
+      font-weight: 600;
+    }
+    
+    .score-date {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      color: #6c757d;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,255,255,0.8);
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    
+    .stats-bar {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+      animation: fadeIn 1s ease-out 0.4s;
+    }
+    
+    .stat-item {
+      text-align: center;
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #667eea;
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      background: rgba(40,167,69,0.1);
+      border-radius: 20px;
+      color: #28a745;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #28a745;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+        padding: 15px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .scores-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .stats-bar {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Saved Quiz Scores</h1>
-  <p>This page shows scores submitted by all users. No authentication required - scores are globally accessible.</p>
-  <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
-    <button id="refresh-btn">Refresh</button>
-    <button id="clear-all-btn" title="Remove all scores from server">Clear All Scores</button>
-    <button id="download-csv" title="Download CSV of scores">Download CSV</button>
-    <span id="last-updated" style="margin-left:12px;color:#666;"></span>
+  <div class="container">
+    <div class="header">
+      <h1>🏆 Quiz Scores Dashboard</h1>
+      <p class="subtitle">Real-time quiz results from all participants</p>
+    </div>
+    
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-value" id="total-scores">0</span>
+        <span class="stat-label">Total Scores</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="avg-score">0%</span>
+        <span class="stat-label">Average Score</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="recent-scores">0</span>
+        <span class="stat-label">Today</span>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn btn-primary" id="refresh-btn">
+        🔄 Refresh Scores
+      </button>
+      <button class="btn btn-danger" id="clear-all-btn" title="Remove all scores from server">
+        🗑️ Clear All
+      </button>
+      <button class="btn btn-info" id="download-csv" title="Download CSV of scores">
+        📊 Download CSV
+      </button>
+      <div class="live-indicator" id="last-updated">
+        <div class="live-dot"></div>
+        Live Updates
+      </div>
+    </div>
+    
+    <div class="status">
+      <div id="status-message" class="status-message status-info">
+        🔄 Loading scores...
+      </div>
+    </div>
+    
+    <div class="scores-grid" id="scores-list">
+      <!-- Scores will be loaded here -->
+    </div>
   </div>
-  <div id="status" style="margin-top:12px; color:#555;">Loading...</div>
-  <div id="scores-list" style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
 
   <script>
     function apiUrl(path) {
@@ -33,8 +425,29 @@
         return base.replace(/\/+$/,'') + path;
       } catch (e) { return path; }
     }
+    function updateStatistics(scores) {
+      const totalScores = document.getElementById('total-scores');
+      const avgScore = document.getElementById('avg-score');
+      const recentScores = document.getElementById('recent-scores');
+      
+      totalScores.textContent = scores.length;
+      
+      if (scores.length > 0) {
+        const avgPercent = Math.round(scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length);
+        avgScore.textContent = avgPercent + '%';
+        
+        const today = new Date().toDateString();
+        const todayScores = scores.filter(s => new Date(s.receivedAt || s.date).toDateString() === today);
+        recentScores.textContent = todayScores.length;
+      } else {
+        avgScore.textContent = '0%';
+        recentScores.textContent = '0';
+      }
+    }
+    
     async function loadScores() {
       const container = document.getElementById('scores-list');
+      const statusMessage = document.getElementById('status-message');
       container.innerHTML = '';
 
       // Fetch from server (global access - no auth required)
@@ -54,83 +467,83 @@
       // Display server scores only (no local fallback for global access)
       if (serverError) {
         if (serverError === 'Server not available') {
-          document.getElementById('status').innerHTML = `
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-              <strong>Server Not Available</strong><br>
+          statusMessage.className = 'status-message status-error';
+          statusMessage.innerHTML = `
+            🚫 <strong>Connection Error</strong><br>
               Unable to connect to the server. This could be due to:
-              <ul style="margin: 8px 0 0 20px;">
-                <li>Server is starting up or restarting</li>
-                <li>Network connectivity issues</li>
-                <li>Server maintenance</li>
+              <ul style="margin: 8px 0 0 20px; text-align: left;">
+                <li>🔄 Server is starting up or restarting</li>
+                <li>🌐 Network connectivity issues</li>
+                <li>🔧 Server maintenance</li>
               </ul>
               Please try refreshing the page in a few moments.
-            </div>
           `;
         } else {
-          document.getElementById('status').innerHTML = `
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-              <strong>Server Error</strong><br>
+          statusMessage.className = 'status-message status-error';
+          statusMessage.innerHTML = `
+            ⚠️ <strong>Server Error</strong><br>
               ${serverError}<br>
               Please try refreshing the page or contact support if the issue persists.
-            </div>
           `;
         }
         return;
       }
 
       if (serverScores.length === 0) {
-        document.getElementById('status').textContent = 'No scores yet. Take the quiz to see results here!';
+        statusMessage.className = 'status-message status-info';
+        statusMessage.innerHTML = `
+          📝 <strong>No Scores Yet</strong><br>
+              Be the first to take the quiz! Results will appear here automatically.
+        `;
+        updateStatistics([]);
         return;
       }
 
-      // Display scores from server (global access)
-      serverScores.reverse().forEach(s => {
-        const card = document.createElement('div');
-        card.style.background = 'white';
-        card.style.border = '1px solid #eee';
-        card.style.padding = '12px';
-        card.style.borderRadius = '8px';
-        card.style.boxShadow = '0 6px 18px rgba(0,0,0,0.04)';
+      // Update statistics
+      updateStatistics(serverScores);
 
+      // Display scores from server (global access)
+      serverScores.reverse().forEach((s, index) => {
+        const card = document.createElement('div');
+        card.className = 'score-card';
+        card.style.animationDelay = `${index * 0.1}s`;
+        
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
+        header.className = 'score-header';
 
         const name = document.createElement('div');
-        name.style.fontWeight = '700';
+        name.className = 'score-name';
         name.textContent = s.name || 'Anonymous';
 
         const score = document.createElement('div');
-        score.style.fontSize = '1.2em';
-        score.style.fontWeight = '800';
-        score.style.color = '#2e7d32';
-        score.textContent = `${s.score || ''}/${s.totalQuestions || ''}`;
+        score.className = 'score-value';
+        const scorePercent = s.score ? Math.round((s.score / (s.totalQuestions || 1)) * 100) : 0;
+        score.textContent = `${s.score || 0}/${s.totalQuestions || ''} (${scorePercent}%)`;
 
         header.appendChild(name);
         header.appendChild(score);
 
         const meta = document.createElement('div');
-        meta.style.marginTop = '8px';
-        meta.style.color = '#666';
-        meta.style.fontSize = '0.95em';
-        meta.innerHTML = `Answered: ${s.answeredQuestions || ''} • Time: ${s.timeTaken || ''} • Reason: ${s.reason || ''}`;
+        meta.className = 'score-meta';
+        meta.innerHTML = `
+          <strong>Answered:</strong> ${s.answeredQuestions || ''} • 
+          <strong>Time:</strong> ${s.timeTaken || ''} • 
+          <strong>Reason:</strong> ${s.reason || ''}
+        `;
 
-        const footer = document.createElement('div');
-        footer.style.marginTop = '10px';
-        footer.style.fontSize = '0.85em';
-        footer.style.color = '#888';
-        footer.textContent = s.receivedAt || s.date || '';
+        const date = document.createElement('div');
+        date.className = 'score-date';
+        date.textContent = new Date(s.receivedAt || s.date).toLocaleString();
 
         card.appendChild(header);
         card.appendChild(meta);
-        card.appendChild(footer);
+        card.appendChild(date);
 
         container.appendChild(card);
       });
 
       // Hide status when scores are loaded successfully
-      document.getElementById('status').style.display = 'none';
+      statusMessage.style.display = 'none';
     }
     loadScores();
 
@@ -138,14 +551,32 @@
     document.getElementById('refresh-btn').addEventListener('click', loadScores);
 
     document.getElementById('clear-all-btn').addEventListener('click', async function(){
-      if (!confirm('Clear ALL scores from the server? This cannot be undone.')) return;
+      if (!confirm('🗑️ Clear ALL scores from server? This cannot be undone.')) return;
       try {
         const res = await fetch(apiUrl('/api/clear-scores'), { method: 'POST' });
         if (!res.ok) throw new Error('Server returned ' + res.status);
-        document.getElementById('status').textContent = 'All scores cleared.';
-        loadScores();
+        
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.className = 'status-message status-success';
+        statusMessage.innerHTML = `
+          ✅ <strong>All Scores Cleared</strong><br>
+          All quiz scores have been permanently removed from the server.
+        `;
+        
+        // Clear statistics
+        updateStatistics([]);
+        
+        // Clear scores display
+        document.getElementById('scores-list').innerHTML = '';
+        
       } catch (e) {
-        alert('Failed to clear server scores: ' + (e.message || e));
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.className = 'status-message status-error';
+        statusMessage.innerHTML = `
+          ❌ <strong>Failed to Clear Scores</strong><br>
+          ${e.message || e}<br>
+          Please try again or contact support.
+        `;
       }
     });
 
@@ -178,30 +609,28 @@
             const msg = JSON.parse(evt.data);
             if (msg && msg.type === 'clear-scores') {
               // server cleared scores — refresh UI
-              loadScores();
-              document.getElementById('status').textContent = 'All scores cleared by server.';
+              const statusMessage = document.getElementById('status-message');
+              statusMessage.className = 'status-message status-success';
+              statusMessage.innerHTML = `
+                ✅ <strong>All Scores Cleared</strong><br>
+                Server has cleared all quiz scores.
+              `;
+              updateStatistics([]);
+              document.getElementById('scores-list').innerHTML = '';
               return;
             }
             if (msg && msg.type === 'new-score' && msg.payload) {
-              // prepend the new score to the table
-              const tbody = document.querySelector('#scores-table tbody');
-              const s = msg.payload;
-              const tr = document.createElement('tr');
-              tr.innerHTML = `
-                <td class="center">${s.id || ''}</td>
-                <td>${s.name || ''}</td>
-                <td>${s.email || ''}</td>
-                <td class="center">${s.score || ''}</td>
-                <td class="center">${s.answeredQuestions || ''}</td>
-                <td class="center">${s.totalQuestions || ''}</td>
-                <td class="center">${s.timeTaken || ''}</td>
-                <td>${s.reason || ''}</td>
-                <td>${s.receivedAt || s.date || ''}</td>
+              // Add new score to the display
+              const statusMessage = document.getElementById('status-message');
+              statusMessage.className = 'status-message status-info';
+              statusMessage.innerHTML = `
+                🆕 <strong>New Score Received</strong><br>
+                ${msg.payload.name || 'Anonymous'} just completed the quiz!
               `;
-              // ensure table visible
-              document.getElementById('scores-table').style.display = 'table';
-              document.getElementById('status').style.display = 'none';
-              tbody.insertBefore(tr, tbody.firstChild);
+              
+              // Refresh scores to show the new score
+              loadScores();
+              return;
             }
           } catch (e) {
             console.error('Invalid WS message', e);
