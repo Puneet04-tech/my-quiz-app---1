@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Excel Quiz (Round 2)</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- Set this meta to your deployed server URL (no trailing slash). Leave empty to use relative paths -->
     <meta name="server-base" content="">
     <!-- <link rel="stylesheet" href="style.css"> -->
@@ -1717,45 +1718,41 @@ button:disabled {
             currentQuestion++;
             displayQuestion();
         }
+    }
 
-// Remove proctoring indicator
-const proctorIndicator = document.getElementById('proctor-status');
-if (proctorIndicator) {
-proctorIndicator.remove();
-}
+    async function finishQuiz(timeUp = false, reason = null) {
+        // Remove proctoring indicator
+        const proctorIndicator = document.getElementById('proctor-status');
+        if (proctorIndicator) {
+            proctorIndicator.remove();
+        }
 
-// Clear the timer if it's still running
-if (timerInterval) {
-clearInterval(timerInterval);
-}
+        // Clear the timer if it's still running
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
 
-// Remove anti-cheat listeners
-try {
-if (selectionHandler) document.removeEventListener('selectionchange', selectionHandler);
-if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
-if (blurHandler) window.removeEventListener('blur', blurHandler);
-if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
-if (copyHandler) document.removeEventListener('copy', copyHandler);
-if (contextmenuHandler) document.removeEventListener('contextmenu', contextmenuHandler);
-if (pasteHandler) document.removeEventListener('paste', pasteHandler);
-} catch (e) {}
+        // Remove anti-cheat listeners
+        try {
+            if (selectionHandler) document.removeEventListener('selectionchange', selectionHandler);
+            if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
+            if (blurHandler) window.removeEventListener('blur', blurHandler);
+            if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+            if (copyHandler) document.removeEventListener('copy', copyHandler);
+            if (contextmenuHandler) document.removeEventListener('contextmenu', contextmenuHandler);
+            if (pasteHandler) document.removeEventListener('paste', pasteHandler);
+        } catch (e) {}
 
-// Stop webcam proctoring if active
-try { stopWebcamProctoring(false); } catch (e) {}
-try { stopHeadMonitoring(); } catch (e) {}
+        // Stop webcam and head monitoring
+        stopWebcamProctoring();
+        stopHeadMonitoring();
 
-// Calculate final score
-score = 0;
-let answeredQuestions = 0;
+        quizEnded = true;
 
-for (let i = 0; i < quizData.length; i++) {
-if (userAnswers[i] !== null) {
-answeredQuestions++;
-if (userAnswers[i] === quizData[i].correctAnswer) {
-score++;
-}
-}
-}
+        // Calculate score
+        let score = 0;
+        let answeredQuestions = 0;
+        for (let i = 0; i < userAnswers.length; i++) {
             if (userAnswers[i] !== null) {
                 answeredQuestions++;
                 if (userAnswers[i] === quizData[i].correctAnswer) {
