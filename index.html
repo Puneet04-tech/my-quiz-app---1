@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Excel Quiz (Round 2)</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- Set this meta to your deployed server URL (no trailing slash). Leave empty to use relative paths -->
     <meta name="server-base" content="">
     <!-- <link rel="stylesheet" href="style.css"> -->
@@ -613,7 +612,8 @@ button:disabled {
                 <label for="registrant-email">Email (optional)</label>
                 <input id="registrant-email" type="text" placeholder="you@example.com" />
                 <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-                    <input id="registrant-email" type="text" placeholder="you@example.com" />
+                    <input id="enable-webcam" type="checkbox" />
+                    <label for="enable-webcam">Enable webcam proctoring (optional)</label>
                 </div>
                 <div style="margin-top:10px; font-size:0.95em; color:#333;">
                     <label style="display:block; margin-bottom:6px; font-weight:600;">Head-movement detection (debug)</label>
@@ -1035,8 +1035,8 @@ button:disabled {
                 }
             }, 30000);
         } catch (e) {
-            recordIncident('webcam_denied', 'User denied or webcam unavailable. Proctoring disabled.');
-            alert('Webcam unavailable or permission denied. Quiz will continue without proctoring.');
+            recordIncident('webcam_denied', 'User denied or webcam unavailable');
+            alert('Webcam unavailable or permission denied. Proctoring disabled.');
         }
     }
 
@@ -1377,40 +1377,15 @@ button:disabled {
         startTimer();
         createQuestionGrid();
         displayQuestion();
-        
-        // ALWAYS start webcam proctoring - no checkbox option needed
-        startWebcamProctoring();
-        
-        // Add proctoring status indicator
-        const proctorIndicator = document.createElement('div');
-        proctorIndicator.id = 'proctor-status';
-        proctorIndicator.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(40, 167, 69, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
-        proctorIndicator.innerHTML = '📹 Proctoring Active';
-        document.body.appendChild(proctorIndicator);
-        
-        // Detect smartphone usage
-        const isSmartphone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isSmartphone) {
-            alert('Please take the quiz on a desktop or laptop for a better experience.');
-            finishQuiz(false, 'Smartphone detected - use desktop/laptop');
-            return;
-        }
-        
+
+        // Check if webcam proctoring requested
+        try {
+            const cb = document.getElementById('enable-webcam');
+            if (cb && cb.checked) {
+                startWebcamProctoring();
+            }
+        } catch (e) {}
+
         // Attach anti-cheat handlers when quiz starts
         selectionHandler = function() {
             if (quizEnded) return;
@@ -1418,24 +1393,13 @@ button:disabled {
                 const sel = window.getSelection();
                 const text = sel ? sel.toString().trim() : '';
                 if (text.length > 0) {
-                    // Check if selection is from within quiz questions
+                    // Ensure selection occurred inside the quiz area
                     const node = sel.anchorNode || sel.focusNode;
                     if (node) {
-                        // Traverse up to find if selection is within a question
-                        let currentElement = node;
-                        let isInsideQuiz = false;
-                        
-                        while (currentElement) {
-                            if (currentElement.id && currentElement.id.startsWith('question-')) {
-                                isInsideQuiz = true;
-                                break;
-                            }
-                            currentElement = currentElement.parentElement;
-                        }
-                        
+                        const el = (node.nodeType === 3) ? node.parentElement : node;
                         const quizEl = document.getElementById('quiz');
-                        if (isInsideQuiz && quizEl && quizEl.contains(node)) {
-                            finishQuiz(false, 'Text selection detected from question (possible cheating)');
+                        if (quizEl && quizEl.contains(el)) {
+                            finishQuiz(false, 'Text selection detected (possible cheating)');
                         }
                     }
                 }
@@ -1512,16 +1476,17 @@ button:disabled {
         pasteHandler = function(e) {
             if (quizEnded) return;
             try {
-                // Check if paste is into quiz questions
-                const activeElement = document.activeElement;
-                if (activeElement && activeElement.id && activeElement.id.startsWith('question-')) {
-                    recordIncident('paste', 'Paste action detected in question (possible cheating)');
-                    finishQuiz(false, 'Paste action detected from question (possible cheating)');
-                    e.preventDefault();
+                const items = (e.clipboardData || window.clipboardData).items;
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        if (item.type && item.type.indexOf('image') !== -1) {
+                            recordIncident('paste_image', 'Image pasted into page (possible screenshot)');
+                            alert('Image paste detected. This action has been recorded.');
+                        }
+                    }
                 }
-            } catch (e) {
-                // Ignore any errors
-            }
+            } catch (e) {}
         };
 
         document.addEventListener('keydown', keydownHandler);
@@ -1720,12 +1685,9 @@ button:disabled {
         }
     }
 
-    async function finishQuiz(timeUp = false, reason = null) {
-        // Remove proctoring indicator
-        const proctorIndicator = document.getElementById('proctor-status');
-        if (proctorIndicator) {
-            proctorIndicator.remove();
-        }
+    function finishQuiz(timeUp = false, reason = null) {
+        if (quizEnded) return; // prevent double finish
+        quizEnded = true;
 
         // Clear the timer if it's still running
         if (timerInterval) {
@@ -1743,16 +1705,15 @@ button:disabled {
             if (pasteHandler) document.removeEventListener('paste', pasteHandler);
         } catch (e) {}
 
-        // Stop webcam and head monitoring
-        stopWebcamProctoring();
-        stopHeadMonitoring();
+        // Stop webcam proctoring if active
+        try { stopWebcamProctoring(false); } catch (e) {}
+        try { stopHeadMonitoring(); } catch (e) {}
 
-        quizEnded = true;
-
-        // Calculate score
-        let score = 0;
+        // Calculate final score
+        score = 0;
         let answeredQuestions = 0;
-        for (let i = 0; i < userAnswers.length; i++) {
+
+        for (let i = 0; i < quizData.length; i++) {
             if (userAnswers[i] !== null) {
                 answeredQuestions++;
                 if (userAnswers[i] === quizData[i].correctAnswer) {
