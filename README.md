@@ -118,6 +118,18 @@ Environment variables to set on Render (or your host):
 
 - `S3_BUCKET` — name of the S3 bucket (required when using S3)
 - `AWS_REGION` — AWS region of the bucket (e.g., `us-east-1`)
+
+## Full Feature List
+For a consolidated list of capabilities, refer to the companion file [features.md](./features.md). This document enumerates:
+
+* UI mechanics (navigation, timer, question grid, review flow).
+* Anti‑cheat checks and incident recording.
+* Webcam proctoring modes and tuning options.
+* Storage backends (file, Postgres, Firestore, S3) and related env vars.
+* Server endpoints and auth behavior.
+* Deployment guidance and environment configuration.
+
+It is intended as a project features specification when developing further or handing off to collaborators.
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` — IAM credentials with S3 Put/Get permissions (keep secret)
 
 How it works:
